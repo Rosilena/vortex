@@ -193,11 +193,11 @@
 `else // XLEN_32
 
 `ifndef STACK_BASE_ADDR
-`define STACK_BASE_ADDR 32'hFFFF0000
+`define STACK_BASE_ADDR 32'hA008F000
 `endif
 
 `ifndef STARTUP_ADDR
-`define STARTUP_ADDR    32'h80000000
+`define STARTUP_ADDR    32'hA0080000
 `endif
 
 `ifndef USER_BASE_ADDR
