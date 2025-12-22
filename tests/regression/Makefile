@@ -3,6 +3,7 @@ include $(ROOT_DIR)/config.mk
 
 all:
 	$(MAKE) -C basic
+	$(MAKE) -C blinky
 	$(MAKE) -C demo
 	$(MAKE) -C dogfood
 	$(MAKE) -C dropout
@@ -24,6 +25,7 @@ all:
 
 run-simx:
 	$(MAKE) -C basic run-simx
+	$(MAKE) -C blinky run-simx
 	$(MAKE) -C demo run-simx
 	$(MAKE) -C dogfood run-simx
 	$(MAKE) -C dropout run-simx
@@ -45,6 +47,7 @@ run-simx:
 
 run-rtlsim:
 	$(MAKE) -C basic run-rtlsim
+	$(MAKE) -C blinky run-rtlsim
 	$(MAKE) -C demo run-rtlsim
 	$(MAKE) -C dogfood run-rtlsim
 	$(MAKE) -C dropout run-rtlsim
@@ -66,6 +69,7 @@ run-rtlsim:
 
 clean:
 	$(MAKE) -C basic clean
+	$(MAKE) -C blinky clean
 	$(MAKE) -C demo clean
 	$(MAKE) -C dogfood clean
 	$(MAKE) -C dropout clean

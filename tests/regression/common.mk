@@ -63,7 +63,14 @@ CXXFLAGS += -std=c++17 -Wall -Wextra -pedantic -Wfatal-errors
 CXXFLAGS += -I$(VORTEX_HOME)/runtime/include -I$(ROOT_DIR)/hw -I$(SW_COMMON_DIR)
 CXXFLAGS += $(CONFIGS)
 
-LDFLAGS += -L$(VORTEX_RT_PATH) -lvortex
+ifdef HOST_ARCH
+	ifeq ($(HOST_ARCH)$(PROJECT), AARCH64blinky)
+		CC = /tools/Xilinx/2025.1/Vitis/gnu/aarch64/lin/aarch64-linux/bin/aarch64-linux-elf-gcc
+		CXX = /tools/Xilinx/2025.1/Vitis/gnu/aarch64/lin/aarch64-linux/bin/aarch64-linux-gnu-g++ 
+	endif
+endif
+
+LDFLAGS += -L$(VORTEX_RT_PATH) -lvortex-soc
 
 # Debugging
 ifdef DEBUG
