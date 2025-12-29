@@ -19,7 +19,7 @@ module Vortex_wrap #(
 	parameter C_M_AXI_GMEM_ID_WIDTH   = 32,
 	parameter C_M_AXI_MEM_NUM_BANKS   = 1,
 	parameter VX_DCR_ADDR_WIDTH = 12,
-	parameter VX_DCR_DATA_WIDTH = 32
+	parameter VX_DCR_DATA_WIDTH = `XLEN
 ) (
 	input wire                                  clk,
 	input wire                                  reset,

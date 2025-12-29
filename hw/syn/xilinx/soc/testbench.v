@@ -82,12 +82,17 @@ module testbench;
                 dcr_wr_addr  <= `VX_DCR_BASE_STARTUP_ADDR0;
                 dcr_wr_data  <= `STARTUP_ADDR;
             end
-            2: begin
+            2:  begin
+                dcr_wr_valid <= 1;
+                dcr_wr_addr  <= `VX_DCR_BASE_STARTUP_ADDR1;
+                dcr_wr_data  <= 64'h00000000;
+            end
+            3: begin
                 dcr_wr_valid <= 0;
                 dcr_wr_addr  <= 0;
                 dcr_wr_data  <= 0;
             end
-            3: begin
+            4: begin
                 vx_reset_wait <= 1;
             end
             default:;

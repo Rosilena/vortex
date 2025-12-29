@@ -65,10 +65,8 @@ proc run_setup {} {
 
   set repo_path [file normalize "ip_repo"]
 
-  # Imposta il percorso nel progetto Vivado
   set_property ip_repo_paths [list $repo_path] [current_project]
 
-  # Aggiorna il catalogo IP per includere gli IP personalizzati
   update_ip_catalog
 
   # Set the directory path for the new project
