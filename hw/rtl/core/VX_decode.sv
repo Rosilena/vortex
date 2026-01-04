@@ -92,10 +92,19 @@ module VX_decode import VX_gpu_pkg::*; #(
             3'h1: r_type = INST_ALU_SLL;
             3'h2: r_type = INST_ALU_SLT;
             3'h3: r_type = INST_ALU_SLTU;
-            3'h4: r_type = INST_ALU_XOR;
+            `ifdef EXT_ZBKB_ENABLE
+                    3'h4: r_type = funct7[5] ? INST_ALU_XNOR : INST_ALU_XOR;
+            `else
+                    3'h4: r_type = INST_ALU_XOR;
+            `endif
             3'h5: r_type = funct7[5] ? INST_ALU_SRA : INST_ALU_SRL;
-            3'h6: r_type = INST_ALU_OR;
-            3'h7: r_type = INST_ALU_AND;
+            `ifdef EXT_ZBKB_ENABLE
+                    3'h6: r_type = funct7[5] ? INST_ALU_ORN : INST_ALU_OR;
+                    3'h7: r_type = funct7[5] ? INST_ALU_ANDN : INST_ALU_AND;
+            `else
+                    3'h6: r_type = INST_ALU_OR;
+                    3'h7: r_type = INST_ALU_AND;
+            `endif
         endcase
     end
 
@@ -187,6 +196,13 @@ module VX_decode import VX_gpu_pkg::*; #(
                     INST_R_F7_ZICOND: begin
                         // CZERO-EQZ, CZERO-NEZ
                         op_type = funct3[1] ? INST_OP_BITS'(INST_ALU_CZNE) : INST_OP_BITS'(INST_ALU_CZEQ);
+                        op_args.alu.xtype = ALU_TYPE_ARITH;
+                    end
+                `endif
+                `ifdef EXT_ZBKB_ENABLE
+                    INST_R_F7_NOT_INST: begin
+                        // ANDN, ORN, XNOR
+                        op_type = INST_OP_BITS'(r_type);
                         op_args.alu.xtype = ALU_TYPE_ARITH;
                     end
                 `endif

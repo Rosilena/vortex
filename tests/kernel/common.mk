@@ -1,7 +1,7 @@
 ROOT_DIR := $(realpath ../../..)
 
 ifeq ($(XLEN),64)
-CFLAGS += -march=rv64imafd -mabi=lp64d
+CFLAGS += -march=rv64imafd_zbkb -mabi=lp64d
 else
 CFLAGS += -march=rv32imaf -mabi=ilp32f
 endif
