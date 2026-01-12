@@ -61,6 +61,17 @@ module VX_execute import VX_gpu_pkg::*; #(
         .branch_ctl_if  (branch_ctl_if)
     );
 
+    `ifdef EXT_ZBKB_ENABLE
+    VX_khu_unit #(
+        .INSTANCE_ID (`SFORMATF(("%s-khu", INSTANCE_ID)))
+    ) khu_unit (
+        .clk            (clk),
+        .reset          (reset),
+        .dispatch_if    (dispatch_if[EX_KHU * `ISSUE_WIDTH +: `ISSUE_WIDTH]),
+        .commit_if      (commit_if[EX_KHU * `ISSUE_WIDTH +: `ISSUE_WIDTH])
+    );
+    `endif
+
     `SCOPE_IO_SWITCH (1);
 
     VX_lsu_unit #(

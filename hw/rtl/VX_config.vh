@@ -36,6 +36,7 @@
 `define EXT_M_ENABLE
 `endif
 
+
 `ifndef EXT_F_DISABLE
 `define EXT_F_ENABLE
 `endif
@@ -363,6 +364,14 @@
 `endif
 `ifndef NUM_ALU_BLOCKS
 `define NUM_ALU_BLOCKS  `ISSUE_WIDTH
+`endif
+
+// Number of KHU units
+`ifndef NUM_KHU_LANES
+`define NUM_KHU_LANES   `SIMD_WIDTH
+`endif
+`ifndef NUM_KHU_BLOCKS
+`define NUM_KHU_BLOCKS  `ISSUE_WIDTH
 `endif
 
 // Number of FPU units
