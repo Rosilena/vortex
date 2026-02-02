@@ -115,8 +115,10 @@ package VX_gpu_pkg;
 	localparam EX_SFU = 2;
 	localparam EX_FPU = (EX_SFU + `EXT_F_ENABLED);
     localparam EX_TCU = (EX_FPU + `EXT_TCU_ENABLED);
+    localparam EX_KHU = (EX_TCU + `EXT_CRYPTO_ENABLED); 
 
-	localparam NUM_EX_UNITS = EX_TCU + 1;
+
+	localparam NUM_EX_UNITS = EX_KHU + 1;
 	localparam EX_BITS = `CLOG2(NUM_EX_UNITS);
 	localparam EX_WIDTH = `UP(EX_BITS);
 
@@ -163,7 +165,43 @@ package VX_gpu_pkg;
     // Opcode extensions
     localparam INST_R_F7_MUL =       7'b0000001;
     localparam INST_R_F7_ZICOND =    7'b0000111;
-    localparam INST_R_F7_NOT_INST =  7'b0100000;  
+    //CRYPTO INSTRUCTION
+    //FOR ALU
+    localparam INST_R_F7_NOT_INST =  7'b0100000;  //ANDN, XNOR, ORN
+    //FOR KHU - ZBKB EXTENSION
+    localparam INST_R_F7_ROTATE_INST =  7'b0110000; //ROR, ROL, RORI, RORW, ROLW, RORIW
+    localparam INST_R_F7_PACK_INST =    7'b0000100; //PACK, PACKH, PACKW, ZIP, UNZIP
+    localparam INST_R_F7_BREV_INST =    7'b0110100; //BREV8, REV8
+    //FOR KHU - ZBKC EXTENSION
+    localparam INST_R_F7_CLMUL_INST =    7'b0000101; //CLMUL, CLMULH
+    //FOR KHU - ZBKX EXTENSION
+    localparam INST_R_F7_XPERM_INST =    7'b0010100; //XPERM8, XPERM4
+    //FOR KHU - ZKND EXTENSION
+    localparam INST_R_F7_AES1_INST = 5'b10101; //AES32DSI
+    localparam INST_R_F7_AES2_INST = 5'b10111; //AES32DSMI
+    localparam INST_R_F7_AES3_INST = 7'b0011101; //AES64DS
+    localparam INST_R_F7_AES4_INST = 7'b0011111; //AES64DSM
+    localparam INST_R_F7_AES5_INST = 7'b0011000; //AES64IM, AES64KS1I
+    localparam INST_R_F7_AES6_INST = 7'b0111111; //AES64KS2
+    //FOR KHU - ZKNE EXTENSION
+    localparam INST_R_F7_AES7_INST = 5'b10001; //AES32ESI
+    localparam INST_R_F7_AES8_INST = 5'b10011; //AES32ESMI
+    localparam INST_R_F7_AES9_INST = 7'b0011001; //AES64ES
+    localparam INST_R_F7_AES10_INST = 7'b0011011; //AES64ESM
+    //FOR KHU - ZKNH EXTENSION
+    localparam INST_R_F7_SHA1_INST = 7'b0001000; //SHA256SIG0, SHA256SIG1, SHA256SUM0, SHA256SUM1, SHA512SIG0, SHA512SIG1, SHA512SUM0, SHA512SUM1
+    localparam INST_R_F7_SHA2_INST = 7'b0101110; //SHA512SIG0H
+    localparam INST_R_F7_SHA3_INST = 7'b0101010; //SHA512SIG0L
+    localparam INST_R_F7_SHA4_INST = 7'b0101111; //SHA512SIG1H
+    localparam INST_R_F7_SHA5_INST = 7'b0101011; //SHA512SIG1L
+    localparam INST_R_F7_SHA6_INST = 7'b0101000; //SHA512SIG0R
+    localparam INST_R_F7_SHA7_INST = 7'b0101001; //SHA512SIG1R
+
+
+
+
+
+
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -177,32 +215,32 @@ package VX_gpu_pkg;
 
     ///////////////////////////////////////////////////////////////////////////
 
-    localparam INST_OP_BITS =    5;
+    localparam INST_OP_BITS =    6;
     localparam INST_FMT_BITS =   2;
 
     ///////////////////////////////////////////////////////////////////////////
 
-    localparam INST_ALU_ADD =    5'b00000;
-    //localparam INST_ALU_UNUSED=5'b00001;
-    localparam INST_ALU_LUI =    5'b00010;
-    localparam INST_ALU_AUIPC =  5'b00011;
-    localparam INST_ALU_SLTU =   5'b00100;
-    localparam INST_ALU_SLT =    5'b00101;
-    //localparam INST_ALU_UNUSED=5'b00110;
-    localparam INST_ALU_SUB =    5'b00111;
-    localparam INST_ALU_SRL =    5'b01000;
-    localparam INST_ALU_SRA =    5'b01001;
-    localparam INST_ALU_CZEQ =   5'b01010;
-    localparam INST_ALU_CZNE =   5'b01011;
-    localparam INST_ALU_AND =    5'b01100;
-    localparam INST_ALU_OR =     5'b01101;
-    localparam INST_ALU_XOR =    5'b01110;
-    localparam INST_ALU_SLL =    5'b01111;
-    localparam INST_ALU_ANDN =   5'b11100;
-    localparam INST_ALU_ORN =    5'b11101;
-    localparam INST_ALU_XNOR =   5'b11110;
+    localparam INST_ALU_ADD =    6'b000000;
+    //localparam INST_ALU_UNUSED=6'b000001;
+    localparam INST_ALU_LUI =    6'b000010;
+    localparam INST_ALU_AUIPC =  6'b000011;
+    localparam INST_ALU_SLTU =   6'b000100;
+    localparam INST_ALU_SLT =    6'b000101;
+    //localparam INST_ALU_UNUSED=6'b000110;
+    localparam INST_ALU_SUB =    6'b000111;
+    localparam INST_ALU_SRL =    6'b001000;
+    localparam INST_ALU_SRA =    6'b001001;
+    localparam INST_ALU_CZEQ =   6'b001010;
+    localparam INST_ALU_CZNE =   6'b001011;
+    localparam INST_ALU_AND =    6'b001100;
+    localparam INST_ALU_OR =     6'b001101;
+    localparam INST_ALU_XOR =    6'b001110;
+    localparam INST_ALU_SLL =    6'b001111;
+    localparam INST_ALU_ANDN =   6'b011100;
+    localparam INST_ALU_ORN =    6'b011101;
+    localparam INST_ALU_XNOR =   6'b011110;
 
-    localparam INST_ALU_BITS =   5;
+    localparam INST_ALU_BITS =   6;
 
     localparam ALU_TYPE_BITS =   2;
     localparam ALU_TYPE_ARITH =  0;
@@ -228,21 +266,21 @@ package VX_gpu_pkg;
 
     ///////////////////////////////////////////////////////////////////////////
 
-    localparam INST_BR_BEQ =     5'b00000;
-    localparam INST_BR_BNE =     5'b00010;
-    localparam INST_BR_BLTU =    5'b00100;
-    localparam INST_BR_BGEU =    5'b00110;
-    localparam INST_BR_BLT =     5'b00101;
-    localparam INST_BR_BGE =     5'b00111;
-    localparam INST_BR_JAL =     5'b01000;
-    localparam INST_BR_JALR =    5'b01001;
-    localparam INST_BR_ECALL =   5'b01010;
-    localparam INST_BR_EBREAK =  5'b01011;
-    localparam INST_BR_URET =    5'b01100;
-    localparam INST_BR_SRET =    5'b01101;
-    localparam INST_BR_MRET =    5'b01110;
-    localparam INST_BR_OTHER =   5'b01111;
-    localparam INST_BR_BITS =    5;
+    localparam INST_BR_BEQ =     6'b000000;
+    localparam INST_BR_BNE =     6'b000010;
+    localparam INST_BR_BLTU =    6'b000100;
+    localparam INST_BR_BGEU =    6'b000110;
+    localparam INST_BR_BLT =     6'b000101;
+    localparam INST_BR_BGE =     6'b000111;
+    localparam INST_BR_JAL =     6'b001000;
+    localparam INST_BR_JALR =    6'b001001;
+    localparam INST_BR_ECALL =   6'b001010;
+    localparam INST_BR_EBREAK =  6'b001011;
+    localparam INST_BR_URET =    6'b001100;
+    localparam INST_BR_SRET =    6'b001101;
+    localparam INST_BR_MRET =    6'b001110;
+    localparam INST_BR_OTHER =   6'b001111;
+    localparam INST_BR_BITS =    6;
     function automatic logic [1:0] inst_br_class(input logic [INST_BR_BITS-1:0] op);
         return {1'b0, ~op[3]};
     endfunction
@@ -318,19 +356,19 @@ package VX_gpu_pkg;
     localparam LSU_FMT_HU =      3'b101;
     localparam LSU_FMT_WU =      3'b110;
 
-    localparam INST_LSU_LB =     5'b00000;
-    localparam INST_LSU_LH =     5'b00001;
-    localparam INST_LSU_LW =     5'b00010;
-    localparam INST_LSU_LD =     5'b00011; // new for RV64I LD
-    localparam INST_LSU_LBU =    5'b00100;
-    localparam INST_LSU_LHU =    5'b00101;
-    localparam INST_LSU_LWU =    5'b00110; // new for RV64I LWU
-    localparam INST_LSU_SB =     5'b01000;
-    localparam INST_LSU_SH =     5'b01001;
-    localparam INST_LSU_SW =     5'b01010;
-    localparam INST_LSU_SD =     5'b01011; // new for RV64I SD
-    localparam INST_LSU_FENCE =  5'b01111;
-    localparam INST_LSU_BITS =   5;
+    localparam INST_LSU_LB =     6'b000000;
+    localparam INST_LSU_LH =     6'b000001;
+    localparam INST_LSU_LW =     6'b000010;
+    localparam INST_LSU_LD =     6'b000011; // new for RV64I LD
+    localparam INST_LSU_LBU =    6'b000100;
+    localparam INST_LSU_LHU =    6'b000101;
+    localparam INST_LSU_LWU =    6'b000110; // new for RV64I LWU
+    localparam INST_LSU_SB =     6'b001000;
+    localparam INST_LSU_SH =     6'b001001;
+    localparam INST_LSU_SW =     6'b001010;
+    localparam INST_LSU_SD =     6'b001011; // new for RV64I SD
+    localparam INST_LSU_FENCE =  6'b001111;
+    localparam INST_LSU_BITS =   6;
 
     localparam INST_FENCE_BITS = 1;
     localparam INST_FENCE_D =    1'h0;
@@ -350,20 +388,20 @@ package VX_gpu_pkg;
 
     ///////////////////////////////////////////////////////////////////////////
 
-    localparam INST_FPU_ADD =    5'b00000; // SUB=fmt[1]
-    localparam INST_FPU_MUL =    5'b00001;
-    localparam INST_FPU_MADD =   5'b00010; // SUB=fmt[1]
-    localparam INST_FPU_NMADD =  5'b00011; // SUB=fmt[1]
-    localparam INST_FPU_DIV =    5'b00100;
-    localparam INST_FPU_SQRT =   5'b00101;
-    localparam INST_FPU_F2I =    5'b01000; // fmt[0]: F32=0, F64=1, fmt[1]: I32=0, I64=1
-    localparam INST_FPU_F2U =    5'b01001; // fmt[0]: F32=0, F64=1, fmt[1]: I32=0, I64=1
-    localparam INST_FPU_I2F =    5'b01010; // fmt[0]: F32=0, F64=1, fmt[1]: I32=0, I64=1
-    localparam INST_FPU_U2F =    5'b01011; // fmt[0]: F32=0, F64=1, fmt[1]: I32=0, I64=1
-    localparam INST_FPU_CMP =    5'b01100; // frm: LE=0, LT=1, EQ=2
-    localparam INST_FPU_F2F =    5'b01101; // fmt[0]: F32=0, F64=1
-    localparam INST_FPU_MISC =   5'b01110; // frm: SGNJ=0, SGNJN=1, SGNJX=2, CLASS=3, MVXW=4, MVWX=5, FMIN=6, FMAX=7
-    localparam INST_FPU_BITS =   5;
+    localparam INST_FPU_ADD =    6'b000000; // SUB=fmt[1]
+    localparam INST_FPU_MUL =    6'b000001;
+    localparam INST_FPU_MADD =   6'b000010; // SUB=fmt[1]
+    localparam INST_FPU_NMADD =  6'b000011; // SUB=fmt[1]
+    localparam INST_FPU_DIV =    6'b000100;
+    localparam INST_FPU_SQRT =   6'b000101;
+    localparam INST_FPU_F2I =    6'b001000; // fmt[0]: F32=0, F64=1, fmt[1]: I32=0, I64=1
+    localparam INST_FPU_F2U =    6'b001001; // fmt[0]: F32=0, F64=1, fmt[1]: I32=0, I64=1
+    localparam INST_FPU_I2F =    6'b001010; // fmt[0]: F32=0, F64=1, fmt[1]: I32=0, I64=1
+    localparam INST_FPU_U2F =    6'b001011; // fmt[0]: F32=0, F64=1, fmt[1]: I32=0, I64=1
+    localparam INST_FPU_CMP =    6'b001100; // frm: LE=0, LT=1, EQ=2
+    localparam INST_FPU_F2F =    6'b001101; // fmt[0]: F32=0, F64=1
+    localparam INST_FPU_MISC =   6'b001110; // frm: SGNJ=0, SGNJN=1, SGNJX=2, CLASS=3, MVXW=4, MVWX=5, FMIN=6, FMAX=7
+    localparam INST_FPU_BITS =   6;
 
     function automatic logic inst_fpu_is_class(input logic [INST_FPU_BITS-1:0] op, input logic [INST_FRM_BITS-1:0] frm);
         return (op == INST_FPU_MISC && frm == 3);
@@ -375,16 +413,16 @@ package VX_gpu_pkg;
 
     ///////////////////////////////////////////////////////////////////////////
 
-    localparam INST_SFU_TMC =    5'h00;
-    localparam INST_SFU_WSPAWN = 5'h01;
-    localparam INST_SFU_SPLIT =  5'h02;
-    localparam INST_SFU_JOIN =   5'h03;
-    localparam INST_SFU_BAR =    5'h04;
-    localparam INST_SFU_PRED =   5'h05;
-    localparam INST_SFU_CSRRW =  5'h06;
-    localparam INST_SFU_CSRRS =  5'h07;
-    localparam INST_SFU_CSRRC =  5'h08;
-    localparam INST_SFU_BITS =   5;
+    localparam INST_SFU_TMC =    6'h00;
+    localparam INST_SFU_WSPAWN = 6'h01;
+    localparam INST_SFU_SPLIT =  6'h02;
+    localparam INST_SFU_JOIN =   6'h03;
+    localparam INST_SFU_BAR =    6'h04;
+    localparam INST_SFU_PRED =   6'h05;
+    localparam INST_SFU_CSRRW =  6'h06;
+    localparam INST_SFU_CSRRS =  6'h07;
+    localparam INST_SFU_CSRRC =  6'h08;
+    localparam INST_SFU_BITS =   6;
 
     function automatic logic [3:0] inst_sfu_csr(input logic [2:0] funct3);
         return (4'h6 + 4'(funct3[1:0]) - 4'h1);
@@ -397,6 +435,71 @@ package VX_gpu_pkg;
     function automatic logic inst_sfu_is_csr(input logic [INST_SFU_BITS-1:0] op);
         return (op >= 6 && op <= 8);
     endfunction
+
+    ////////////////////////////////////KHU/////////////////////////////////////
+    //ZBKB
+    localparam INST_KHU_ROR =    6'b000000;
+    localparam INST_KHU_ROL =    6'b000001;
+    localparam INST_KHU_RORI =   6'b000010;
+    localparam INST_KHU_RORW =   6'b000011;
+    localparam INST_KHU_ROLW =   6'b000100;
+    localparam INST_KHU_RORIW =  6'b000101;
+    localparam INST_KHU_PACK  =  6'b000110;
+    localparam INST_KHU_PACKH  = 6'b000111;
+    localparam INST_KHU_PACKW  = 6'b001000;
+    localparam INST_KHU_BREV8  = 6'b001001; 
+    localparam INST_KHU_REV8   = 6'b001010; 
+    localparam INST_KHU_ZIP    = 6'b001011; //only riscv 32
+    localparam INST_KHU_UNZIP  = 6'b001100; //only riscv 32
+
+    //ZBKC
+    localparam INST_KHU_CLMUL  = 6'b001101;
+    localparam INST_KHU_CLMULH = 6'b001110;
+
+    //ZBKX
+    localparam INST_KHU_XPERM8 = 6'b001111;
+    localparam INST_KHU_XPERM4 = 6'b010000;
+
+    //ZKND
+    localparam INST_KHU_AES32DSI =  6'b010001; //only riscv 32
+    localparam INST_KHU_AES32DSMI = 6'b010010; //only riscv 32
+    localparam INST_KHU_AES64DS =   6'b010011; 
+    localparam INST_KHU_AES64DSM =  6'b010100; 
+    localparam INST_KHU_AES64IM =   6'b010101;
+    localparam INST_KHU_AES64KS1I = 6'b010110;
+    localparam INST_KHU_AES64KS2  = 6'b010111;
+
+    //ZKNE
+    localparam INST_KHU_AES32ESI   = 6'b011000;
+    localparam INST_KHU_AES32ESMI  = 6'b011001;
+    localparam INST_KHU_AES64ES    = 6'b011010;
+    localparam INST_KHU_AES64ESM   = 6'b011011;
+
+    //ZKNH
+    localparam INST_KHU_SHA256SIG0   = 6'b011100;
+    localparam INST_KHU_SHA256SIG1   = 6'b011101;
+    localparam INST_KHU_SHA256SUM0   = 6'b011110;
+    localparam INST_KHU_SHA256SUM1   = 6'b011111;
+    localparam INST_KHU_SHA512SIG0H  = 6'b100000; //only riscv 32
+    localparam INST_KHU_SHA512SIG0L  = 6'b100001; //only riscv 32
+    localparam INST_KHU_SHA512SIG1H  = 6'b100010; //only riscv 32
+    localparam INST_KHU_SHA512SIG1L  = 6'b100011; //only riscv 32
+    localparam INST_KHU_SHA512SIG0R  = 6'b100100; //only riscv 32
+    localparam INST_KHU_SHA512SIG1R  = 6'b100101; //only riscv 32
+    localparam INST_KHU_SHA512SIG0   = 6'b100110; //only riscv 64
+    localparam INST_KHU_SHA512SIG1   = 6'b100111; //only riscv 64
+    localparam INST_KHU_SHA512SUM0   = 6'b101000; //only riscv 64
+    localparam INST_KHU_SHA512SUM1   = 6'b101001; //only riscv 64
+
+
+    localparam KHU_TYPE_ZBKB =  0;
+    localparam KHU_TYPE_ZBKC_ZBKX =  1;
+    localparam KHU_TYPE_ZKND_ZKNE =  2;
+    localparam KHU_TYPE_ZKNH =  3;
+
+    localparam INST_KHU_BITS =   6;
+    localparam KHU_TYPE_BITS =   2;
+
 
     /////////////////////////////// Issue parameters //////////////////////////
 
@@ -506,6 +609,15 @@ package VX_gpu_pkg;
     `PACKAGE_ASSERT($bits(alu_args_t) == INST_ARGS_BITS)
 
     typedef struct packed {
+        //i delete use_PC and is_w
+        logic use_imm;
+        logic [KHU_TYPE_BITS-1:0] xtype;
+        logic [`XLEN-1:0] imm;
+        logic [1:0] bs; //for crypto instruction
+    } khu_args_t;
+    `PACKAGE_ASSERT($bits(khu_args_t) == INST_ARGS_BITS)
+
+    typedef struct packed {
         logic [(INST_ARGS_BITS-INST_FRM_BITS-INST_FMT_BITS)-1:0] __padding;
         logic [INST_FRM_BITS-1:0] frm;
         logic [INST_FMT_BITS-1:0] fmt;
@@ -547,6 +659,7 @@ package VX_gpu_pkg;
 
     typedef union packed {
         alu_args_t  alu;
+        khu_args_t  khu;
         fpu_args_t  fpu;
         lsu_args_t  lsu;
         csr_args_t  csr;
@@ -684,6 +797,9 @@ package VX_gpu_pkg;
 
     `DECL_EXECUTE_T (alu_exe_t, `NUM_ALU_LANES);
     `DECL_RESULT_T  (alu_res_t, `NUM_ALU_LANES);
+
+    `DECL_EXECUTE_T (khu_exe_t, `NUM_KHU_LANES);
+    `DECL_RESULT_T  (khu_res_t, `NUM_KHU_LANES);
 
     `DECL_EXECUTE_T (lsu_exe_t, `NUM_LSU_LANES);
     `DECL_RESULT_T (lsu_res_t, `NUM_LSU_LANES);

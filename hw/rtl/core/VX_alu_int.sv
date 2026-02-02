@@ -111,7 +111,7 @@ module VX_alu_int import VX_gpu_pkg::*; #(
                 3'b001: msc_result[i] = alu_in1[i] | alu_in2_imm[i]; // OR
                 3'b010: msc_result[i] = alu_in1[i] ^ alu_in2_imm[i]; // XOR
                 3'b011: msc_result[i] = alu_in1[i] << alu_in2_imm[i][SHIFT_IMM_BITS-1:0]; // SLL
-                `ifdef EXT_ZBKB_ENABLE
+                `ifdef EXT_CRYPTO_ENABLE
                     3'b100: msc_result[i] = alu_in1[i] & ~alu_in2_imm[i]; // ANDN
                     3'b101: msc_result[i] = alu_in1[i] | ~alu_in2_imm[i]; // NOR
                     3'b110: msc_result[i] = ~(alu_in1[i] ^ alu_in2_imm[i]); // XNOR

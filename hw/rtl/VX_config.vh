@@ -36,6 +36,7 @@
 `define EXT_M_ENABLE
 `endif
 
+
 `ifndef EXT_F_DISABLE
 `define EXT_F_ENABLE
 `endif
@@ -52,8 +53,8 @@
 `define EXT_ZICOND_ENABLE
 `endif
 
-`ifndef EXT_ZBKB_DISABLE
-`define EXT_ZBKB_ENABLE
+`ifndef EXT_CRYPTO_DISABLE
+`define EXT_CRYPTO_ENABLE
 `endif
 
 `ifndef XLEN_32
@@ -367,6 +368,14 @@
 `endif
 `ifndef NUM_ALU_BLOCKS
 `define NUM_ALU_BLOCKS  `ISSUE_WIDTH
+`endif
+
+// Number of KHU units
+`ifndef NUM_KHU_LANES
+`define NUM_KHU_LANES   `SIMD_WIDTH
+`endif
+`ifndef NUM_KHU_BLOCKS
+`define NUM_KHU_BLOCKS  `ISSUE_WIDTH
 `endif
 
 // Number of FPU units
@@ -894,10 +903,10 @@
     `define EXT_V_ENABLED   0
 `endif
 
-`ifdef EXT_ZBKB_ENABLE
-    `define EXT_ZBKB_ENABLED   1
+`ifdef EXT_CRYPTO_ENABLE
+    `define EXT_CRYPTO_ENABLED   1
 `else
-    `define EXT_ZBKB_ENABLED   0
+    `define EXT_CRYPTO_ENABLED   0
 `endif
 
 `ifdef EXT_ZICOND_ENABLE
@@ -931,7 +940,7 @@
 `define ISA_EXT_LMEM        4
 `define ISA_EXT_ZICOND      5
 `define ISA_EXT_TCU         6
-`define ISA_EXT_ZBKB        7
+`define ISA_EXT_CRYPTO        7
 
 `define MISA_EXT  (`ICACHE_ENABLED  << `ISA_EXT_ICACHE) \
                 | (`DCACHE_ENABLED  << `ISA_EXT_DCACHE) \
@@ -940,7 +949,7 @@
                 | (`LMEM_ENABLED    << `ISA_EXT_LMEM) \
                 | (`EXT_ZICOND_ENABLED << `ISA_EXT_ZICOND) \
                 | (`EXT_TCU_ENABLED << `ISA_EXT_TCU) \
-                | (`EXT_ZBKB_ENABLED << `ISA_EXT_ZBKB) \
+                | (`EXT_CRYPTO_ENABLED << `ISA_EXT_CRYPTO) \
 
 `define MISA_STD  (`EXT_A_ENABLED <<  0) /* A - Atomic Instructions extension */ \
                 | (0 <<  1) /* B - Tentatively reserved for Bit operations extension */ \

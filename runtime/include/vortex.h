@@ -61,7 +61,7 @@ typedef void* vx_buffer_h;
 #define VX_ISA_EXT_RASTER           (1ull << (32+ISA_EXT_RASTER))
 #define VX_ISA_EXT_OM               (1ull << (32+ISA_EXT_OM))
 #define VX_ISA_EXT_TCU              (1ull << (32+ISA_EXT_TCU))
-#define VX_ISA_EXT_ZBKB             (1ull << (32+ISA_EXT_ZBKB))
+#define VX_ISA_EXT_CRYPTO           (1ull << (32+ISA_EXT_CRYPTO))
 
 
 // ready wait timeout

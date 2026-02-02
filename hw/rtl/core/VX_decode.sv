@@ -92,13 +92,13 @@ module VX_decode import VX_gpu_pkg::*; #(
             3'h1: r_type = INST_ALU_SLL;
             3'h2: r_type = INST_ALU_SLT;
             3'h3: r_type = INST_ALU_SLTU;
-            `ifdef EXT_ZBKB_ENABLE
+            `ifdef EXT_CRYPTO_ENABLE
                     3'h4: r_type = funct7[5] ? INST_ALU_XNOR : INST_ALU_XOR;
             `else
                     3'h4: r_type = INST_ALU_XOR;
             `endif
             3'h5: r_type = funct7[5] ? INST_ALU_SRA : INST_ALU_SRL;
-            `ifdef EXT_ZBKB_ENABLE
+            `ifdef EXT_CRYPTO_ENABLE
                     3'h6: r_type = funct7[5] ? INST_ALU_ORN : INST_ALU_OR;
                     3'h7: r_type = funct7[5] ? INST_ALU_ANDN : INST_ALU_AND;
             `else
@@ -149,6 +149,138 @@ module VX_decode import VX_gpu_pkg::*; #(
     end
 `endif
 
+///////KHU
+`ifdef EXT_CRYPTO_ENABLE
+    reg [INST_KHU_BITS-1:0] k_type;
+    always @(*) begin
+        case (funct3)
+            3'h0: begin
+                `ifndef XLEN_64 //this instructions is only for RISCV-32
+                if(funct7[4:0] == INST_R_F7_AES1_INST) begin
+                    k_type = INST_KHU_AES32DSI;
+                end
+                else if(funct7[4:0] == INST_R_F7_AES2_INST) begin
+                    k_type = INST_KHU_AES32DSMI;
+                end
+                else if(funct7[4:0] == INST_R_F7_AES7_INST) begin
+                    k_type = INST_KHU_AES32ESI;
+                end
+                else if(funct7[4:0] == INST_R_F7_AES8_INST) begin
+                    k_type = INST_KHU_AES32ESMI;
+                end
+                else if(funct7[6:0] == INST_R_F7_SHA2_INST) begin
+                    k_type = INST_KHU_SHA512SIG0H;
+                end
+                else if(funct7[6:0] == INST_R_F7_SHA3_INST) begin
+                    k_type = INST_KHU_SHA512SIG0L;
+                end
+                else if(funct7[6:0] == INST_R_F7_SHA4_INST) begin
+                    k_type = INST_KHU_SHA512SIG1H;
+                end
+                else if(funct7[6:0] == INST_R_F7_SHA5_INST) begin
+                    k_type = INST_KHU_SHA512SIG1L;
+                end
+                else if(funct7[6:0] == INST_R_F7_SHA6_INST) begin
+                    k_type = INST_KHU_SHA512SIG0R;
+                end
+                else if(funct7[6:0] == INST_R_F7_SHA7_INST) begin
+                    k_type = INST_KHU_SHA512SIG1R;
+                end
+                `endif
+                `ifdef XLEN_64 //this instructions is only for RISCV-64
+                if(funct7[6:0] == INST_R_F7_AES3_INST) begin
+                    k_type = INST_KHU_AES64DS;
+                end
+                else if(funct7[6:0] == INST_R_F7_AES4_INST) begin
+                    k_type = INST_KHU_AES64DSM;
+                end
+                else if(funct7[6:0] == INST_R_F7_AES6_INST) begin
+                    k_type = INST_KHU_AES64KS2;
+                end
+                else if(funct7[6:0] == INST_R_F7_AES9_INST) begin
+                    k_type = INST_KHU_AES64ES;
+                end
+                else if(funct7[6:0] == INST_R_F7_AES10_INST) begin
+                    k_type = INST_KHU_AES64ESM;
+                end
+                `endif
+            end
+            3'h1: begin
+                case({opcode[5], opcode[3]})
+                    2'b00: begin
+                        if(funct7 == INST_R_F7_SHA1_INST) begin
+                            case(rs2)
+                                5'b00000: k_type = INST_KHU_SHA256SUM0;
+                                5'b00001: k_type = INST_KHU_SHA256SUM1;
+                                5'b00010: k_type = INST_KHU_SHA256SIG0;
+                                5'b00011: k_type = INST_KHU_SHA256SIG1;
+                                `ifdef XLEN_64
+                                    5'b00100: k_type = INST_KHU_SHA512SUM0;
+                                    5'b00101: k_type = INST_KHU_SHA512SUM1;
+                                    5'b00110: k_type = INST_KHU_SHA512SIG0;
+                                    5'b00111: k_type = INST_KHU_SHA512SIG1;
+                                `endif 
+                                default: k_type = 'x;
+                            endcase
+                        end
+                        else begin
+                            case(rs2)
+                                `ifndef XLEN_64 //this instruction is only for RISCV-32
+                                5'b01111: k_type = INST_KHU_ZIP;
+                                `endif
+                                `ifdef XLEN_64
+                                5'b00000: k_type = INST_KHU_AES64IM;
+                                `endif
+                                default: 
+                                    case(funct7) 
+                                        `ifdef XLEN_64
+                                        INST_R_F7_AES5_INST: k_type = INST_KHU_AES64KS1I;
+                                        `endif
+                                        default: k_type = INST_KHU_CLMUL;
+                                    endcase
+                            endcase
+                        end
+                    end
+                    2'b10: k_type = INST_KHU_ROL;
+                    2'b11: k_type = INST_KHU_ROLW;
+                    default: k_type = 'x;
+                endcase
+            end
+            3'h2: k_type = INST_KHU_XPERM4;
+            3'h3: k_type = INST_KHU_CLMULH;
+            3'h4: begin
+                if (funct7 == INST_R_F7_XPERM_INST) begin
+                    k_type = INST_KHU_XPERM8;
+                end
+                else begin
+                    k_type = opcode[3] ? INST_KHU_PACKW : INST_KHU_PACK;
+                end
+            end
+            3'h5: begin 
+                case ({opcode[5], opcode[3]})
+                    2'b00: begin
+                        case (rs2)
+                            5'b00111: k_type = INST_KHU_BREV8;
+                            5'b11000: k_type = INST_KHU_REV8;
+                            `ifndef XLEN_64 //this instruction is only RISCV 32
+                            5'b01111: k_type = INST_KHU_UNZIP;
+                            `endif
+                            default: k_type = INST_KHU_RORI;
+                        endcase
+                    end
+                    2'b01: k_type = INST_KHU_RORIW;
+                    2'b10: k_type = INST_KHU_ROR;
+                    2'b11: k_type = INST_KHU_RORW;
+                endcase
+            end
+            //3'h6: k_type = INST_M_REM;
+            3'h7: k_type = INST_KHU_PACKH;
+            default: k_type = 'x;
+        endcase
+    end
+`endif
+
+
     always @(*) begin
 
         ex_type   = 'x;
@@ -166,21 +298,77 @@ module VX_decode import VX_gpu_pkg::*; #(
 
         case (opcode)
             INST_I: begin
-                ex_type = EX_ALU;
-                op_type = INST_OP_BITS'(r_type);
-                op_args.alu.xtype = ALU_TYPE_ARITH;
-                op_args.alu.is_w = 0;
-                op_args.alu.use_PC = 0;
-                op_args.alu.use_imm = 1;
-                op_args.alu.imm = `SEXT(`XLEN, i_imm);
                 `USED_IREG (rd);
                 `USED_IREG (rs1);
+                case(funct7)
+                    `ifdef EXT_CRYPTO_ENABLE
+                        INST_R_F7_ROTATE_INST: begin
+                            //RORI
+                            ex_type = EX_KHU;
+                            op_type = INST_OP_BITS'(k_type);
+                            op_args.khu.xtype = KHU_TYPE_ZBKB;
+                            op_args.khu.bs = 2'b00;
+                            op_args.khu.use_imm = 1;
+                            op_args.khu.imm = `SEXT(`XLEN, i_imm);  
+                        end
+                        INST_R_F7_BREV_INST: begin
+                            // BREV8, REV8
+                            ex_type = EX_KHU;
+                            op_args.khu.bs = 2'b00;
+                            op_args.khu.use_imm = 0;
+                            op_type = INST_OP_BITS'(k_type);
+                            op_args.khu.xtype = KHU_TYPE_ZBKB;
+                        end
+                        INST_R_F7_CLMUL_INST: begin
+                            //CLMUL 
+                            ex_type = EX_KHU;
+                            op_args.khu.bs = 2'b00;
+                            op_args.khu.use_imm = 0;
+                            op_type = INST_OP_BITS'(k_type);
+                            op_args.khu.xtype = KHU_TYPE_ZBKC_ZBKX;
+                        end
+                        INST_R_F7_SHA1_INST: begin
+                            //SHA256SIG0, SHA256SIG1, SHA256SUM0, SHA256SUM1, 
+                            //SHA512SIG0, SHA512SIG1, SHA512SUM0, SHA512SUM1 (only riscv 64)
+                            ex_type = EX_KHU;
+                            op_args.khu.bs = 2'b00;
+                            op_args.khu.use_imm = 0;
+                            op_type = INST_OP_BITS'(k_type);
+                            op_args.khu.xtype = KHU_TYPE_ZKNH;
+                        end
+                        `ifndef XLEN_64 //only RISCV 32
+                            INST_R_F7_PACK_INST: begin
+                                // ZIP, UNZIP
+                                ex_type = EX_KHU;
+                                op_args.khu.bs = 2'b00;
+                                op_args.khu.use_imm = 0;
+                                op_type = INST_OP_BITS'(k_type);
+                                op_args.khu.xtype = KHU_TYPE_ZBKB;
+                            end
+                        `endif 
+                        `ifdef XLEN_64
+                            INST_R_F7_AES5_INST: begin
+                                //AES64IM, AES64KS1I
+                                ex_type = EX_KHU;
+                                op_args.khu.bs = 2'b00;
+                                op_args.khu.use_imm = 0;
+                                op_type = INST_OP_BITS'(k_type);
+                                op_args.khu.xtype = KHU_TYPE_ZKND_ZKNE;
+                            end
+                        `endif
+                    `endif
+                    default: begin
+                        ex_type = EX_ALU;
+                        op_type = INST_OP_BITS'(r_type);
+                        op_args.alu.xtype = ALU_TYPE_ARITH;
+                        op_args.alu.is_w = 0;
+                        op_args.alu.use_PC = 0;
+                        op_args.alu.use_imm = 1;
+                        op_args.alu.imm = `SEXT(`XLEN, i_imm);  
+                    end
+                endcase              
             end
             INST_R: begin
-                ex_type = EX_ALU;
-                op_args.alu.is_w = 0;
-                op_args.alu.use_PC = 0;
-                op_args.alu.use_imm = 0;
                 `USED_IREG (rd);
                 `USED_IREG (rs1);
                 `USED_IREG (rs2);
@@ -188,6 +376,10 @@ module VX_decode import VX_gpu_pkg::*; #(
                 `ifdef EXT_M_ENABLE
                     INST_R_F7_MUL: begin
                         // MUL, MULH, MULHSU, MULHU
+                        ex_type = EX_ALU;
+                        op_args.alu.is_w = 0;
+                        op_args.alu.use_PC = 0;
+                        op_args.alu.use_imm = 0;
                         op_type = INST_OP_BITS'(m_type);
                         op_args.alu.xtype = ALU_TYPE_MULDIV;
                     end
@@ -195,41 +387,122 @@ module VX_decode import VX_gpu_pkg::*; #(
                 `ifdef EXT_ZICOND_ENABLE
                     INST_R_F7_ZICOND: begin
                         // CZERO-EQZ, CZERO-NEZ
+                        ex_type = EX_ALU;
+                        op_args.alu.is_w = 0;
+                        op_args.alu.use_PC = 0;
+                        op_args.alu.use_imm = 0;
                         op_type = funct3[1] ? INST_OP_BITS'(INST_ALU_CZNE) : INST_OP_BITS'(INST_ALU_CZEQ);
                         op_args.alu.xtype = ALU_TYPE_ARITH;
                     end
                 `endif
-                `ifdef EXT_ZBKB_ENABLE
+                `ifdef EXT_CRYPTO_ENABLE
                     INST_R_F7_NOT_INST: begin
                         // ANDN, ORN, XNOR
+                        ex_type = EX_ALU;
+                        op_args.alu.is_w = 0;
+                        op_args.alu.use_PC = 0;
+                        op_args.alu.use_imm = 0;
                         op_type = INST_OP_BITS'(r_type);
                         op_args.alu.xtype = ALU_TYPE_ARITH;
                     end
+                    INST_R_F7_ROTATE_INST, INST_R_F7_PACK_INST: begin
+                        // ROL, ROR, PACK, PACKH
+                        ex_type = EX_KHU;
+                        op_args.khu.bs = 2'b00;
+                        op_args.khu.use_imm = 0;
+                        op_type = INST_OP_BITS'(k_type);
+                        op_args.khu.xtype = KHU_TYPE_ZBKB;
+                    end
+                    INST_R_F7_CLMUL_INST, INST_R_F7_XPERM_INST: begin
+                            //CLMULH, XPERM8, XPERM4
+                            ex_type = EX_KHU;
+                            op_args.khu.bs = 2'b00;
+                            op_args.khu.use_imm = 0;
+                            op_type = INST_OP_BITS'(k_type);
+                            op_args.khu.xtype = KHU_TYPE_ZBKC_ZBKX;
+                    end
+                    `ifdef XLEN_64
+                        INST_R_F7_AES3_INST, INST_R_F7_AES4_INST, INST_R_F7_AES6_INST, INST_R_F7_AES9_INST, INST_R_F7_AES10_INST: begin
+                            //AES64DS, AES64DSM, AES64KS2, AES64ES, AES64ESM
+                            ex_type = EX_KHU;
+                            op_args.khu.bs = 2'b00;
+                            op_args.khu.use_imm = 0;
+                            op_type = INST_OP_BITS'(k_type);
+                            op_args.khu.xtype = KHU_TYPE_ZKND_ZKNE;
+                        end
+                    `endif
+                    `ifndef XLEN_64 //only RISCV 32
+                        INST_R_F7_SHA2_INST, INST_R_F7_SHA3_INST, INST_R_F7_SHA4_INST, INST_R_F7_SHA5_INST, INST_R_F7_SHA6_INST, INST_R_F7_SHA7_INST: begin
+                            //SHA512SIG0H, SHA512SIG0L, SHA512SIG1H, SHA512SIG1L, SHA512SIG0R, SHA512SIG1R
+                            ex_type = EX_KHU;
+                            op_args.khu.bs = 2'b00;
+                            op_args.khu.use_imm = 0;
+                            op_type = INST_OP_BITS'(k_type);
+                            op_args.khu.xtype = KHU_TYPE_ZKNH;
+                        end
+                    `endif
                 `endif
                     default: begin
+                        ex_type = EX_ALU;
+                        op_args.alu.is_w = 0;
+                        op_args.alu.use_PC = 0;
+                        op_args.alu.use_imm = 0;
                         op_type = INST_OP_BITS'(r_type);
                         op_args.alu.xtype = ALU_TYPE_ARITH;
                     end
                 endcase
+                case(funct7[4:0])
+                    `ifdef EXT_CRYPTO_ENABLE
+                        `ifndef XLEN_64 //only RISCV 32
+                            INST_R_F7_AES1_INST, INST_R_F7_AES2_INST, INST_R_F7_AES7_INST, INST_R_F7_AES8_INST: begin
+                                //AES32DSI, AES32DSMI, AES32ESI, AES32ESMI
+                                ex_type = EX_KHU;
+                                op_args.khu.bs = funct7[6:5];
+                                op_args.khu.use_imm = 0;
+                                op_type = INST_OP_BITS'(k_type);
+                                op_args.khu.xtype = KHU_TYPE_ZKND_ZKNE;
+                            end
+                        `endif
+                    `endif
+                    default: begin
+                        ex_type = EX_ALU;
+                        op_args.alu.is_w = 0;
+                        op_args.alu.use_PC = 0;
+                        op_args.alu.use_imm = 0;
+                        op_type = INST_OP_BITS'(r_type);
+                        op_args.alu.xtype = ALU_TYPE_ARITH;
+                        end
+                endcase
             end
         `ifdef XLEN_64
             INST_I_W: begin
-                // ADDIW, SLLIW, SRLIW, SRAIW
-                ex_type = EX_ALU;
-                op_type = INST_OP_BITS'(r_type);
-                op_args.alu.xtype = ALU_TYPE_ARITH;
-                op_args.alu.is_w = 1;
-                op_args.alu.use_PC = 0;
-                op_args.alu.use_imm = 1;
-                op_args.alu.imm = `SEXT(`XLEN, iw_imm);
                 `USED_IREG (rd);
                 `USED_IREG (rs1);
+                case(funct7)
+                    `ifdef EXT_CRYPTO_ENABLE
+                        INST_R_F7_ROTATE_INST: begin
+                            //RORIW
+                            ex_type = EX_KHU;
+                            op_type = INST_OP_BITS'(k_type);
+                            op_args.khu.xtype = KHU_TYPE_ZBKB;
+                            op_args.khu.bs = 2'b00;
+                            op_args.khu.use_imm = 1;
+                            op_args.khu.imm = `SEXT(`XLEN, i_imm);  
+                        end
+                    `endif
+                    default: begin
+                        // ADDIW, SLLIW, SRLIW, SRAIW
+                        ex_type = EX_ALU;
+                        op_type = INST_OP_BITS'(r_type);
+                        op_args.alu.xtype = ALU_TYPE_ARITH;
+                        op_args.alu.is_w = 1;
+                        op_args.alu.use_PC = 0;
+                        op_args.alu.use_imm = 1;
+                        op_args.alu.imm = `SEXT(`XLEN, iw_imm);
+                    end
+                endcase
             end
             INST_R_W: begin
-                ex_type = EX_ALU;
-                op_args.alu.is_w = 1;
-                op_args.alu.use_PC = 0;
-                op_args.alu.use_imm = 0;
                 `USED_IREG (rd);
                 `USED_IREG (rs1);
                 `USED_IREG (rs2);
@@ -237,12 +510,38 @@ module VX_decode import VX_gpu_pkg::*; #(
                 `ifdef EXT_M_ENABLE
                     INST_R_F7_MUL: begin
                         // MULW, DIVW, DIVUW, REMW, REMUW
+                        ex_type = EX_ALU;
+                        op_args.alu.is_w = 1;
+                        op_args.alu.use_PC = 0;
+                        op_args.alu.use_imm = 0;
                         op_type = INST_OP_BITS'(m_type);
                         op_args.alu.xtype = ALU_TYPE_MULDIV;
                     end
                 `endif
+                `ifdef EXT_CRYPTO_ENABLE
+                    //RORW, ROLW
+                    INST_R_F7_ROTATE_INST: begin
+                        ex_type = EX_KHU;
+                        op_args.khu.bs = 2'b00;
+                        op_args.khu.use_imm = 0;
+                        op_type = INST_OP_BITS'(k_type);
+                        op_args.khu.xtype = KHU_TYPE_ZBKB;
+                    end
+                    INST_R_F7_PACK_INST: begin
+                        //PACKW
+                        ex_type = EX_KHU;
+                        op_args.khu.bs = 2'b00;
+                        op_args.khu.use_imm = 0;
+                        op_type = INST_OP_BITS'(k_type);
+                        op_args.khu.xtype = KHU_TYPE_ZBKB;
+                    end
+                `endif 
                     default: begin
                         // ADDW, SUBW, SLLW, SRLW, SRAW
+                        ex_type = EX_ALU;
+                        op_args.alu.is_w = 1;
+                        op_args.alu.use_PC = 0;
+                        op_args.alu.use_imm = 0;
                         op_type = INST_OP_BITS'(r_type);
                         op_args.alu.xtype = ALU_TYPE_ARITH;
                     end

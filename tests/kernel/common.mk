@@ -1,9 +1,9 @@
 ROOT_DIR := $(realpath ../../..)
 
 ifeq ($(XLEN),64)
-CFLAGS += -march=rv64imafd_zbkb -mabi=lp64d
+CFLAGS += -march=rv64imafd_zbkb_zbkc_zbkx_zknd_zkne_zknh -mabi=lp64d
 else
-CFLAGS += -march=rv32imaf -mabi=ilp32f
+CFLAGS += -march=rv32imaf_zbkb_zbkc_zbkx_zknd_zkne_zknh -mabi=ilp32f
 endif
 STARTUP_ADDR ?= 0x80000000
 

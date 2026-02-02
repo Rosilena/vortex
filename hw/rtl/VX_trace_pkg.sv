@@ -33,6 +33,7 @@ package VX_trace_pkg;
     task trace_ex_type(input int level, input [EX_BITS-1:0] ex_type);
         case (ex_type)
             EX_ALU: `TRACE(level, ("ALU"))
+            EX_KHU: `TRACE(level, ("KHU"))
             EX_LSU: `TRACE(level, ("LSU"))
             EX_SFU: `TRACE(level, ("SFU"))
         `ifdef EXT_F_ENABLE
@@ -173,6 +174,80 @@ package VX_trace_pkg;
                     end
                 end
                 default: `TRACE(level, ("?"))
+            endcase
+        end
+        EX_KHU: begin
+            case (op_args.khu.xtype)
+                KHU_TYPE_ZBKB: begin
+                            case (INST_KHU_BITS'(op_type))
+                                INST_KHU_ROR: `TRACE(level, ("ROR"))
+                                INST_KHU_ROL: `TRACE(level, ("ROL"))
+                                INST_KHU_RORI: `TRACE(level, ("RORI"))
+                                INST_KHU_RORW: `TRACE(level, ("RORW"))
+                                INST_KHU_ROLW: `TRACE(level, ("ROLW"))
+                                INST_KHU_RORIW: `TRACE(level, ("RORIW"))
+                                INST_KHU_PACK: `TRACE(level, ("PACK"))
+                                INST_KHU_PACKH: `TRACE(level, ("PACKH"))
+                                INST_KHU_PACKW: `TRACE(level, ("PACKW"))
+                                INST_KHU_BREV8: `TRACE(level, ("BREV8"))
+                                INST_KHU_REV8: `TRACE(level, ("REV8"))
+                                `ifndef XLEN_64
+                                INST_KHU_ZIP: `TRACE(level, ("ZIP"))
+                                INST_KHU_UNZIP: `TRACE(level, ("UNZIP"))
+                                `endif
+                                default:      `TRACE(level, ("?"))
+                            endcase
+                end
+                KHU_TYPE_ZBKC_ZBKX: begin
+                        case (INST_KHU_BITS'(op_type))
+                            INST_KHU_CLMUL: `TRACE(level, ("CLMUL"))
+                            INST_KHU_CLMULH: `TRACE(level, ("CLMULH"))
+                            INST_KHU_XPERM8: `TRACE(level, ("XPERM8"))
+                            INST_KHU_XPERM4: `TRACE(level, ("XPERM4"))
+                            default:      `TRACE(level, ("?"))
+                        endcase
+                end
+                KHU_TYPE_ZKND_ZKNE: begin
+                        case (INST_KHU_BITS'(op_type))
+                            `ifndef XLEN_64 //only RISCV-32
+                                INST_KHU_AES32DSI: `TRACE(level, ("AES32DSI"))
+                                INST_KHU_AES32DSMI: `TRACE(level, ("AES32DSMI"))
+                                INST_KHU_AES32ESI: `TRACE(level, ("AES32ESI"))
+                                INST_KHU_AES32ESMI: `TRACE(level, ("AES32ESMI"))
+                            `endif 
+                            `ifdef XLEN_64
+                                INST_KHU_AES64DS: `TRACE(level, ("AES64DS"))
+                                INST_KHU_AES64DSM: `TRACE(level, ("AES64DSM"))
+                                INST_KHU_AES64IM: `TRACE(level, ("AES64IM"))
+                                INST_KHU_AES64KS1I: `TRACE(level, ("AES64KS1I"))
+                                INST_KHU_AES64KS2: `TRACE(level, ("AES64KS2"))
+                                INST_KHU_AES64ES: `TRACE(level, ("AES64ES"))
+                                INST_KHU_AES64ESM: `TRACE(level, ("AES64ESM"))
+                            `endif 
+                            default:      `TRACE(level, ("?"))
+                        endcase
+                end
+                KHU_TYPE_ZKNH: begin
+                        case (INST_KHU_BITS'(op_type))
+                            INST_KHU_SHA256SIG0: `TRACE(level, ("SHA256SIG0"))
+                            INST_KHU_SHA256SIG1: `TRACE(level, ("SHA256SIG1"))
+                            INST_KHU_SHA256SUM0: `TRACE(level, ("SHA256SUM0"))
+                            INST_KHU_SHA256SUM1: `TRACE(level, ("SHA256SUM1"))
+                            INST_KHU_SHA512SIG0H: `TRACE(level, ("SHA512SIG0H"))
+                            INST_KHU_SHA512SIG0L: `TRACE(level, ("SHA512SIG0L"))
+                            INST_KHU_SHA512SIG1H: `TRACE(level, ("SHA512SIG1H"))
+                            INST_KHU_SHA512SIG1L: `TRACE(level, ("SHA512SIG1L"))
+                            INST_KHU_SHA512SIG0R: `TRACE(level, ("SHA512SIG0R"))
+                            INST_KHU_SHA512SIG1R: `TRACE(level, ("SHA512SIG1R"))
+                            `ifdef XLEN_64
+                                INST_KHU_SHA512SIG0: `TRACE(level, ("SHA512SIG0"))
+                                INST_KHU_SHA512SIG1: `TRACE(level, ("SHA512SIG1"))
+                                INST_KHU_SHA512SUM0: `TRACE(level, ("SHA512SUM0"))
+                                INST_KHU_SHA512SUM1: `TRACE(level, ("SHA512SUM1"))
+                            `endif
+                            default:      `TRACE(level, ("?"))
+                        endcase
+                end
             endcase
         end
         EX_LSU: begin
