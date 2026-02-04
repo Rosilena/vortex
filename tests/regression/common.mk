@@ -10,16 +10,16 @@ VORTEX_KN_PATH ?= $(ROOT_DIR)/kernel
 
 ifeq ($(XLEN),64)
 	ifeq ($(EXT_V_ENABLE),1)
-		VX_CFLAGS += -march=rv64imafdv_zve64d -mabi=lp64d # vector extension
+		VX_CFLAGS += -march=rv64imafdv_zve64d_zbkb_zbkc_zbkx_zknd_zkne_zknh -mabi=lp64d # vector extension
 	else
-		VX_CFLAGS += -march=rv64imafd -mabi=lp64d
+		VX_CFLAGS += -march=rv64imafd_zbkb_zbkc_zbkx_zknd_zkne_zknh -mabi=lp64d
 	endif
 	STARTUP_ADDR ?= 0x180000000
 else
 	ifeq ($(EXT_V_ENABLE),1)
-		VX_CFLAGS += -march=rv32imafv_zve32f -mabi=ilp32f # vector extension
+		VX_CFLAGS += -march=rv32imafv_zve32f_zbkb_zbkc_zbkx_zknd_zkne_zknh -mabi=ilp32f # vector extension
 	else
-		VX_CFLAGS += -march=rv32imaf -mabi=ilp32f
+		VX_CFLAGS += -march=rv32imaf_zbkb_zbkc_zbkx_zknd_zkne_zknh -mabi=ilp32f
 	endif
 	STARTUP_ADDR ?= 0x80000000
 endif
