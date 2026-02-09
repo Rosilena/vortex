@@ -104,8 +104,7 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   int errors = 0;
   std::cout << "verify result" << std::endl;
 
-  printf("andn Rd, 0x00FF, 0X0004\n");
-  printf("Rd = %d\n", h_dst[0]);
+  printf("5 * 3 = %d\n", h_dst[0]);
 
   auto time_end = std::chrono::high_resolution_clock::now();
 

@@ -442,15 +442,44 @@ module VX_decode import VX_gpu_pkg::*; #(
                         end
                     `endif
                 `endif
-                    default: begin
-                        ex_type = EX_ALU;
-                        op_args.alu.is_w = 0;
-                        op_args.alu.use_PC = 0;
-                        op_args.alu.use_imm = 0;
-                        op_type = INST_OP_BITS'(r_type);
-                        op_args.alu.xtype = ALU_TYPE_ARITH;
+                    default: begin      
+                      `ifdef EXT_CRYPTO_ENABLE
+                            `ifndef XLEN_64 //only RISCV 32
+                                if (funct7[4:0] == INST_R_F7_AES1_INST) || (funct7[4:0] == INST_R_F7_AES2_INST)  || (funct7[4:0] == INST_R_F7_AES7_INST) || (funct7[4:0] == INST_R_F7_AES8_INST) begin
+                                    //AES32DSI, AES32DSMI, AES32ESI, AES32ESMI
+                                    ex_type = EX_KHU;
+                                    op_args.khu.bs = funct7[6:5];
+                                    op_args.khu.use_imm = 0;
+                                    op_type = INST_OP_BITS'(k_type);
+                                    op_args.khu.xtype = KHU_TYPE_ZKND_ZKNE;
+                                end else begin                          
+                                  ex_type = EX_ALU;
+                                  op_args.alu.is_w = 0;
+                                  op_args.alu.use_PC = 0;
+                                  op_args.alu.use_imm = 0;
+                                  op_type = INST_OP_BITS'(r_type);
+                                  op_args.alu.xtype = ALU_TYPE_ARITH;
+                                end
+                            `else
+                                ex_type = EX_ALU;
+                                op_args.alu.is_w = 0;
+                                op_args.alu.use_PC = 0;
+                                op_args.alu.use_imm = 0;
+                                op_type = INST_OP_BITS'(r_type);
+                                op_args.alu.xtype = ALU_TYPE_ARITH; 
+                            `endif
+                      `else
+                            ex_type = EX_ALU;
+                            op_args.alu.is_w = 0;
+                            op_args.alu.use_PC = 0;
+                            op_args.alu.use_imm = 0;
+                            op_type = INST_OP_BITS'(r_type);
+                            op_args.alu.xtype = ALU_TYPE_ARITH;
+                      `endif
                     end
                 endcase
+              end
+                /*
                 case(funct7[4:0])
                     `ifdef EXT_CRYPTO_ENABLE
                         `ifndef XLEN_64 //only RISCV 32
@@ -474,6 +503,7 @@ module VX_decode import VX_gpu_pkg::*; #(
                         end
                 endcase
             end
+            */
         `ifdef XLEN_64
             INST_I_W: begin
                 `USED_IREG (rd);
