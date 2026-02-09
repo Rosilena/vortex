@@ -506,8 +506,6 @@ module VX_decode import VX_gpu_pkg::*; #(
             */
         `ifdef XLEN_64
             INST_I_W: begin
-                `USED_IREG (rd);
-                `USED_IREG (rs1);
                 case(funct7)
                     `ifdef EXT_CRYPTO_ENABLE
                         INST_R_F7_ROTATE_INST: begin
@@ -529,6 +527,8 @@ module VX_decode import VX_gpu_pkg::*; #(
                         op_args.alu.use_PC = 0;
                         op_args.alu.use_imm = 1;
                         op_args.alu.imm = `SEXT(`XLEN, iw_imm);
+                        `USED_IREG (rd);
+                        `USED_IREG (rs1);
                     end
                 endcase
             end
