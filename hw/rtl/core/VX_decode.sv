@@ -93,14 +93,29 @@ module VX_decode import VX_gpu_pkg::*; #(
             3'h2: r_type = INST_ALU_SLT;
             3'h3: r_type = INST_ALU_SLTU;
             `ifdef EXT_CRYPTO_ENABLE
-                    3'h4: r_type = funct7[5] ? INST_ALU_XNOR : INST_ALU_XOR;
+                    3'h4: begin
+                    if(opcode == INST_R)
+                        r_type = funct7[5] ? INST_ALU_XNOR : INST_ALU_XOR;
+                    else
+                        r_type = INST_ALU_XOR;
+                    end
             `else
                     3'h4: r_type = INST_ALU_XOR;
             `endif
             3'h5: r_type = funct7[5] ? INST_ALU_SRA : INST_ALU_SRL;
             `ifdef EXT_CRYPTO_ENABLE
-                    3'h6: r_type = funct7[5] ? INST_ALU_ORN : INST_ALU_OR;
-                    3'h7: r_type = funct7[5] ? INST_ALU_ANDN : INST_ALU_AND;
+                    3'h6: begin
+                    if(opcode == INST_R)
+                        r_type = funct7[5] ? INST_ALU_ORN : INST_ALU_OR;
+                    else
+                        r_type = INST_ALU_OR;
+                    end
+                    3'h7: begin
+                    if(opcode == INST_R) 
+                        r_type = funct7[5] ? INST_ALU_ANDN : INST_ALU_AND;
+                    else
+                        r_type = INST_ALU_AND;
+                    end
             `else
                     3'h6: r_type = INST_ALU_OR;
                     3'h7: r_type = INST_ALU_AND;

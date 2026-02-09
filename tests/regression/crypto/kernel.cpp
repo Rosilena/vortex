@@ -10,7 +10,7 @@ int main() {
   volatile int32_t c = 0;
   
   asm ("mv a2, %0\n"
-       "andi	t1, a2, -0x4\n"
+       "andi	t1, a2, 0x2\n"
        "mv %1, t1"
         : "=r" (c)
         : "r" (a)
