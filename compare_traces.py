@@ -44,56 +44,60 @@ def parse_trace(header, trace):
     return trace_parsed
 
 
-if __name__ == "__main__":
-    with open("dogfood_no_khu.csv") as f:
-        dogfood_no_khu = f.readlines()
+def compare_traces(trace_1_filename, trace_2_filename):
+    with open(trace_1_filename) as f:
+        trace_1 = f.readlines()
 
-    with open("dogfood_khu.csv") as f:
-        dogfood_khu = f.readlines()
+    with open(trace_2_filename) as f:
+        trace_2 = f.readlines()
     
-    header = {e[1] : e[0] for e in enumerate(dogfood_no_khu[0].strip().split(","))}
+    header = {e[1] : e[0] for e in enumerate(trace_1[0].strip().split(","))}
 
-    for idx, line in enumerate(dogfood_khu[1:]):
-        khu_trace = extract_trace(line)
-        no_khu_trace = extract_trace(dogfood_no_khu[idx + 1])
+    for idx, line in enumerate(trace_2[1:]):
+        trace_extracted = extract_trace(line)
+        trace_2_extracted = extract_trace(trace_1[idx + 1])
 
-        khu_trace_parsed = parse_trace(header, khu_trace)
-        no_khu_trace_parsed = parse_trace(header, no_khu_trace)
+        trace_parsed = parse_trace(header, trace_extracted)
+        trace_2_parsed = parse_trace(header, trace_2_extracted)
 
-        #print(f"{khu_trace_parsed=}")
+        #print(f"{trace_parsed=}")
 
-        if khu_trace_parsed["opcode"] != no_khu_trace_parsed["opcode"]:
+        if trace_parsed["opcode"] != trace_2_parsed["opcode"]:
             print("Different OPCODES!")
             print(line)
             break
 
-        if len(khu_trace_parsed['operands']) != len(no_khu_trace_parsed['operands']):
+        if len(trace_parsed['operands']) != len(trace_2_parsed['operands']):
             print("Wrong number of operands !")
             print(line)
             break
         else:
-            for i, operand in enumerate(khu_trace_parsed['operands']):
-                if operand["register"] != no_khu_trace_parsed['operands'][i]["register"]:
+            for i, operand in enumerate(trace_parsed['operands']):
+                if operand["register"] != trace_2_parsed['operands'][i]["register"]:
                     print(f"Wrong operand register {i}")
                     print(line)
                     break
-                elif operand["value"] != no_khu_trace_parsed['operands'][i]["value"]:
+                elif operand["value"] != trace_2_parsed['operands'][i]["value"]:
                     print(f"Wrong operand value, register {i}")
                     print(line)
                     break
 
-        if khu_trace_parsed["destination"]["register"] != no_khu_trace_parsed["destination"]["register"]:
+        if trace_parsed["destination"]["register"] != trace_2_parsed["destination"]["register"]:
             print(f"Wrong destination register")
             print(line)
             break
-        elif khu_trace_parsed["destination"]["value"] != no_khu_trace_parsed["destination"]["value"]:
+        elif trace_parsed["destination"]["value"] != trace_2_parsed["destination"]["value"]:
             print(f"Wrong destination value")
             print(line)
             break
+
+if __name__ == "__main__":
+    trace_1 = input("Please write first file to check trace") 
+    trace_2 = input("Please write second file to compare trace")
     
-        
-        # if any([khu_trace[i] != no_khu_trace[i] for i in range(len(khu_trace))]):
-        #     print(f"Different: \n{khu_trace=} \n{khu_trace=}")
+    compare_traces(trace_1, trace_2)
+        # if any([trace_extracted[i] != trace_2_extracted[i] for i in range(len(khu_trace))]):
+        #     print(f"Different: \n{trace_extracted=} \n{khu_trace=}")
         #     break
 
     
