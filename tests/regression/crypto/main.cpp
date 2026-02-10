@@ -22,7 +22,8 @@
 
 const char* kernel_file = "kernel.vxbin";
 int test = -1;
-uint32_t count = 0;
+int num_instr = 47;
+test_type count = 0;
 
 vx_device_h device = nullptr;
 vx_buffer_h dst_buffer = nullptr;
@@ -68,14 +69,12 @@ void cleanup() {
   }
 }
 
-inline uint32_t shuffle(int i, uint32_t value) {
-  return (value << i) | (value & ((1 << i)-1));;
-}
 
 int run_kernel_test(const kernel_arg_t& kernel_arg) {
-  uint32_t buf_size = 1 * sizeof(int32_t);
+  
+  test_type buf_size = num_instr * sizeof(test_type);
 
-  std::vector<uint32_t> h_dst(1);
+  std::vector<test_type> h_dst(1);
 
   // Upload kernel binary
   std::cout << "Upload kernel binary" << std::endl;
@@ -103,8 +102,53 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   // verify result
   int errors = 0;
   std::cout << "verify result" << std::endl;
+  std::cout << "OPERANDS: " << std::hex << "\n";
+  std::cout << "ROR = " << std::hex << h_dst[0] << std::endl;
+  std::cout << "ROL = " << std::hex << h_dst[1] << std::endl;
+  std::cout << "RORI  = " << std::hex << h_dst[2] << std::endl;
+  std::cout << "PACK = " << std::hex << h_dst[3] << std::endl;
+  std::cout << "PACKH = " << std::hex << h_dst[4] << std::endl;
+  std::cout << "BREV8  = " << std::hex << h_dst[5] << std::endl;
+  std::cout << "REV8  = " << std::hex << h_dst[6] << std::endl;
+  std::cout << "CLMUL  = " << std::hex << h_dst[7] << std::endl;
+  std::cout << "CLMULH  = " << std::hex << h_dst[8] << std::endl;
+  std::cout << "XPERM8  = " << std::hex << h_dst[9] << std::endl;
+  std::cout << "XPERM4  = " << std::hex << h_dst[10] << std::endl;
+  std::cout << "SHA256SIG0  = " << std::hex << h_dst[11] << std::endl;
+  std::cout << "SHA256SIG1  = " << std::hex << h_dst[12] << std::endl;
+  std::cout << "SHA256SUM0  = " << std::hex << h_dst[13] << std::endl;
+  std::cout << "SHA256SUM1  = " << std::hex << h_dst[14] << std::endl;
 
-  printf("AND 0x1 -0x4  = %d\n", h_dst[0]);
+  #ifdef XLEN_64
+    std:: cout << "RORW = " << std::hex << h_dst[15] << std::endl;
+    std:: cout << "ROLW = " << std::hex << h_dst[16] << std::endl;
+    std:: cout << "RORIW  = " << std::hex << h_dst[17] << std::endl;
+    std:: cout << "PACKW  = " << std::hex << h_dst[18] << std::endl;
+    std:: cout << "AES64DS  = " << std::hex << h_dst[19] << std::endl;
+    std:: cout << "AES64DSM  = " << std::hex << h_dst[20] << std::endl;
+    std:: cout << "AES64IM  = " << std::hex << h_dst[21] << std::endl;
+    std:: cout << "AES64KS1I  = " << std::hex << h_dst[22] << std::endl;
+    std:: cout << "AES64KS2  = " << std::hex << h_dst[23] << std::endl;
+    std:: cout << "AES64ES  = " << std::hex << h_dst[24] << std::endl;
+    std:: cout << "AES64ESM  = " << std::hex << h_dst[25] << std::endl;
+    std:: cout << "SHA512SIG0  = " << std::hex << h_dst[26] << std::endl;
+    std:: cout << "SHA512SIG1  = " << std::hex << h_dst[27] << std::endl;
+    std:: cout << "SHA512SUM0  = " << std::hex << h_dst[28] << std::endl;
+    std:: cout << "SHA512SUM1  = " << std::hex << h_dst[29] << std::endl;
+  #else
+    std::cout << "ZIP  = " << std::hex << h_dst[15] << std::endl;
+    std::cout << "UNZIP  = " << std::hex << h_dst[16] << std::endl;
+    std::cout << "AES32DSI  = " << std::hex << h_dst[17] << std::endl;
+    std::cout << "AES32DSMI  = " << std::hex << h_dst[18] << std::endl;
+    std::cout << "AES32ESI  = " << std::hex << h_dst[19] << std::endl;
+    std::cout << "AES32ESMI = " << std::hex << h_dst[20] << std::endl;
+    std::cout << "SHA512SIG0H  = " << std::hex << h_dst[21] << std::endl;
+    std::cout << "SHA512SIG0L  = " << std::hex << h_dst[22] << std::endl;
+    std::cout << "SHA512SIG1H  = " << std::hex << h_dst[23] << std::endl;
+    std::cout << "SHA512SIG1L  = " << std::hex << h_dst[24] << std::endl;
+    std::cout << "SHA512SUM0R  = " << std::hex << h_dst[25] << std::endl;
+    std::cout << "SHA512SUM1R  = " << std::hex << h_dst[26] << std::endl;
+  #endif
 
   auto time_end = std::chrono::high_resolution_clock::now();
 
@@ -134,7 +178,7 @@ int main(int argc, char *argv[]) {
   uint64_t num_cores;
   RT_CHECK(vx_dev_caps(device, VX_CAPS_NUM_CORES, &num_cores));
 
-  uint32_t buf_size = 1 * sizeof(int32_t);
+  test_type buf_size = num_instr * sizeof(test_type);
   
   // allocate device memory
   std::cout << "allocate device memory" << std::endl;
