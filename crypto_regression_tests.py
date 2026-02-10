@@ -4,7 +4,7 @@ import shutil
 from git import Repo
 
 commit_hash_baseline = "364771195a4751d4e5a"
-commit_hash_hwmod    = "99609d4b41a13b94733"
+commit_hash_hwmod    = "6fd978f0a9dc4d9b5cf"
 
 #baseline_csv_dir   = os.path.join("csv", "baseline")
 
