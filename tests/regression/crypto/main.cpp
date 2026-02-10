@@ -74,7 +74,7 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   
   test_type buf_size = num_instr * sizeof(test_type);
 
-  std::vector<test_type> h_dst(1);
+  std::vector<test_type> h_dst(num_instr);
 
   // Upload kernel binary
   std::cout << "Upload kernel binary" << std::endl;
