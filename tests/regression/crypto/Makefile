@@ -11,10 +11,10 @@ VX_SRCS := $(SRC_DIR)/kernel.cpp $(VORTEX_HOME)/kernel/src/vx_perf.c $(SRC_DIR)/
 
 OPTS ?= -n256
 
-CONFIGS = -DL1_DISABLE -DLMEM_DISABLE -DNUM_CORES=1 -DNUM_WARPS=1 -DNUM_THREADS=1 -DNUM_CLUSTER=1 -DNUM_SOCKETS=1
-
 ifeq ($(XLEN), 64)
 	CONFIGS += -DXLEN_64
+	else
+	CONFIGS += -DXLEN_32
 endif
 
 include ../common.mk

@@ -128,7 +128,7 @@ module VX_khu_int import VX_gpu_pkg::*; import VX_khu_sbox_pkg::*; #(
                         end
                     end
                     INST_KHU_REV8: begin //REV8
-                        for (integer z = 0; z < `XLEN - 8; z += 8) begin
+                        for (integer z = 0; z < `XLEN; z += 8) begin
                             zbkb_result[i][z +: 8] = khu_in1[i][`XLEN - 1 - z -: 8];
                         end   
                     end  

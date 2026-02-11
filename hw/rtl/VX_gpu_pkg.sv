@@ -171,7 +171,15 @@ package VX_gpu_pkg;
     //FOR KHU - ZBKB EXTENSION
     localparam INST_R_F7_ROTATE_INST =  7'b0110000; //ROR, ROL, RORI, RORW, ROLW, RORIW
     localparam INST_R_F7_PACK_INST =    7'b0000100; //PACK, PACKH, PACKW, ZIP, UNZIP
-    localparam INST_R_F7_BREV_INST =    7'b0110100; //BREV8, REV8
+
+`ifndef XLEN_64 
+    localparam INST_R_F7_BREV_INST =    7'b0110100; //BREV8, REV832
+`else
+    localparam INST_R_F7_BREV_INST =    7'b0110100; //BREV8, 
+    localparam INST_R_F7_REV_INST =     7'b0110101; //BREV8, REV864
+`endif
+
+
     //FOR KHU - ZBKC EXTENSION
     localparam INST_R_F7_CLMUL_INST =    7'b0000101; //CLMUL, CLMULH
     //FOR KHU - ZBKX EXTENSION
@@ -447,7 +455,7 @@ package VX_gpu_pkg;
     localparam INST_KHU_PACK  =  6'b000110;
     localparam INST_KHU_PACKH  = 6'b000111;
     localparam INST_KHU_PACKW  = 6'b001000;
-    localparam INST_KHU_BREV8  = 6'b001001; 
+    localparam INST_KHU_BREV8  = 6'b001001;
     localparam INST_KHU_REV8   = 6'b001010; 
     localparam INST_KHU_ZIP    = 6'b001011; //only riscv 32
     localparam INST_KHU_UNZIP  = 6'b001100; //only riscv 32

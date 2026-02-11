@@ -10,7 +10,9 @@
 #endif
 
 typedef struct {
-  uint64_t dst_addr;  
+  test_type src0_addr;
+  test_type src1_addr;
+  test_type dst_addr;  
 } kernel_arg_t;
 
 #endif

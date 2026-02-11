@@ -328,6 +328,7 @@ module VX_decode import VX_gpu_pkg::*; #(
                                     op_args.khu.use_imm = 1;
                                     op_args.khu.imm = `SEXT(`XLEN, i_imm);  
                                 end
+                                `ifndef XLEN_64
                                 INST_R_F7_BREV_INST: begin
                                     // BREV8, REV8 funct3 = 101
                                     ex_type = EX_KHU;
@@ -336,6 +337,16 @@ module VX_decode import VX_gpu_pkg::*; #(
                                     op_type = INST_OP_BITS'(k_type);
                                     op_args.khu.xtype = KHU_TYPE_ZBKB;
                                 end
+                                `else
+                                INST_R_F7_BREV_INST, INST_R_F7_REV_INST: begin
+                                    // BREV8, REV8 funct3 = 101
+                                    ex_type = EX_KHU;
+                                    op_args.khu.bs = 2'b00;
+                                    op_args.khu.use_imm = 0;
+                                    op_type = INST_OP_BITS'(k_type);
+                                    op_args.khu.xtype = KHU_TYPE_ZBKB;
+                                end
+                                `endif 
                                 `ifndef XLEN_64 //only RISCV 32
                                 INST_R_F7_PACK_INST: begin
                                     // UNZIP
@@ -500,7 +511,7 @@ module VX_decode import VX_gpu_pkg::*; #(
                     default: begin      
                       `ifdef EXT_CRYPTO_ENABLE
                             `ifndef XLEN_64 //only RISCV 32
-                                if (funct7[4:0] == INST_R_F7_AES1_INST) || (funct7[4:0] == INST_R_F7_AES2_INST)  || (funct7[4:0] == INST_R_F7_AES7_INST) || (funct7[4:0] == INST_R_F7_AES8_INST) begin
+                                if ((funct7[4:0] == INST_R_F7_AES1_INST) || (funct7[4:0] == INST_R_F7_AES2_INST)  || (funct7[4:0] == INST_R_F7_AES7_INST) || (funct7[4:0] == INST_R_F7_AES8_INST)) begin
                                     //AES32DSI, AES32DSMI, AES32ESI, AES32ESMI
                                     ex_type = EX_KHU;
                                     op_args.khu.bs = funct7[6:5];

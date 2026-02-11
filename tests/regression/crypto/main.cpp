@@ -26,6 +26,8 @@ int num_instr = 47;
 test_type count = 0;
 
 vx_device_h device = nullptr;
+vx_buffer_h src0_buffer = nullptr;
+vx_buffer_h src1_buffer = nullptr;
 vx_buffer_h dst_buffer = nullptr;
 vx_buffer_h krnl_buffer = nullptr;
 vx_buffer_h args_buffer = nullptr;
@@ -62,6 +64,8 @@ static void parse_args(int argc, char **argv) {
 
 void cleanup() {
   if (device) {
+    vx_mem_free(src0_buffer);
+    vx_mem_free(src1_buffer);
     vx_mem_free(dst_buffer);
     vx_mem_free(krnl_buffer);
     vx_mem_free(args_buffer);
@@ -73,8 +77,14 @@ void cleanup() {
 int run_kernel_test(const kernel_arg_t& kernel_arg) {
   
   test_type buf_size = num_instr * sizeof(test_type);
-
+  
+  std::vector<test_type> h_src0(1);
+  std::vector<test_type> h_src1(1); 
   std::vector<test_type> h_dst(num_instr);
+
+  h_src0[0] = (test_type) 0xFFAA; //First operand
+  h_src1[0] = (test_type) 0x1; //Second operand
+  h_dst[0]  = (test_type) 0x0;
 
   // Upload kernel binary
   std::cout << "Upload kernel binary" << std::endl;
@@ -84,8 +94,17 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   std::cout << "upload kernel argument" << std::endl;
   RT_CHECK(vx_upload_bytes(device, &kernel_arg, sizeof(kernel_arg_t), &args_buffer));
 
+  // upload source buffer0
+  std::cout << "upload source buffer0" << std::endl;
+  RT_CHECK(vx_copy_to_dev(src0_buffer, h_src0.data(), 0, sizeof(test_type)));
+
+  // upload source buffer1
+  std::cout << "upload source buffer1" << std::endl; 
+  RT_CHECK(vx_copy_to_dev(src1_buffer, h_src1.data(), 0, sizeof(test_type)));
+
   auto time_start = std::chrono::high_resolution_clock::now();
 
+  
   // start device
   std::cout << "start execution" << std::endl;
   auto t2 = std::chrono::high_resolution_clock::now();
@@ -182,9 +201,16 @@ int main(int argc, char *argv[]) {
   
   // allocate device memory
   std::cout << "allocate device memory" << std::endl;
+  RT_CHECK(vx_mem_alloc(device, buf_size, VX_MEM_READ, &src0_buffer));
+  RT_CHECK(vx_mem_address(src0_buffer, (uint64_t*) &kernel_arg.src0_addr));
+  RT_CHECK(vx_mem_alloc(device, buf_size, VX_MEM_READ, &src1_buffer));
+  RT_CHECK(vx_mem_address(src1_buffer, (uint64_t*) &kernel_arg.src1_addr));
   RT_CHECK(vx_mem_alloc(device, buf_size, VX_MEM_WRITE, &dst_buffer));
-  RT_CHECK(vx_mem_address(dst_buffer, &kernel_arg.dst_addr));
+  RT_CHECK(vx_mem_address(dst_buffer, (uint64_t*) &kernel_arg.dst_addr));
 
+  
+  std::cout << "dev_src0=0x" << std::hex << kernel_arg.src0_addr << std::dec << std::endl;
+  std::cout << "dev_src1=0x" << std::hex << kernel_arg.src1_addr << std::dec << std::endl;
   std::cout << "dev_dst=0x" << std::hex << kernel_arg.dst_addr << std::endl;
 
   std::cout << "run kernel test" << std::endl;
