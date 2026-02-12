@@ -169,16 +169,17 @@ package VX_gpu_pkg;
     //FOR ALU
     localparam INST_R_F7_NOT_INST =  7'b0100000;  //ANDN, XNOR, ORN
     //FOR KHU - ZBKB EXTENSION
-    localparam INST_R_F7_ROTATE_INST =  7'b0110000; //ROR, ROL, RORI, RORW, ROLW, RORIW
     localparam INST_R_F7_PACK_INST =    7'b0000100; //PACK, PACKH, PACKW, ZIP, UNZIP
-
 `ifndef XLEN_64 
     localparam INST_R_F7_BREV_INST =    7'b0110100; //BREV8, REV832
+    localparam INST_R_F7_ROTATE_INST =  7'b0110000; //ROR, ROL, RORI, RORW, ROLW, RORIW
+
 `else
     localparam INST_R_F7_BREV_INST =    7'b0110100; //BREV8, 
     localparam INST_R_F7_REV_INST =     7'b0110101; //BREV8, REV864
+    localparam INST_R_F7_ROTATE_INST =  7'b0110000; //ROR, ROL, RORW, ROLW, RORIW
+    localparam INST_R_F7_RORI_INST   =  6'b011000; //RORI
 `endif
-
 
     //FOR KHU - ZBKC EXTENSION
     localparam INST_R_F7_CLMUL_INST =    7'b0000101; //CLMUL, CLMULH
