@@ -151,13 +151,13 @@ module VX_khu_int import VX_gpu_pkg::*; import VX_khu_sbox_pkg::*; #(
                     end
                 `else //Instruction only for RISCV 32
                     INST_KHU_ZIP: begin //ZIP
-                        for (integer j = 0; j < `XLEN / 2 - 1; j++) begin
+                        for (integer j = 0; j < `XLEN / 2; j++) begin
                             zbkb_result[i][2 * j] = khu_in1[i][j];
                             zbkb_result[i][2 * j + 1] = khu_in1[i][j + `XLEN / 2];
                         end
                     end
                     INST_KHU_UNZIP: begin //UNZIP
-                        for (integer j = 0; j < `XLEN / 2 - 1; j++) begin 
+                        for (integer j = 0; j < `XLEN / 2; j++) begin 
                             zbkb_result[i][j] = khu_in1[i][2 * j];
                             zbkb_result[i][j + `XLEN / 2] = khu_in1[i][2 * j + 1];
                         end
@@ -292,21 +292,21 @@ module VX_khu_int import VX_gpu_pkg::*; import VX_khu_sbox_pkg::*; #(
                     zknd_zkne_result[i] = {w1[i], w0[i]};
                 end
                 INST_KHU_AES64KS1I: begin //AES64KS1I
-                    if (khu_in2[i][3:0] > 10) begin
+                    if (khu_in2_imm[i][3:0] > 10) begin
                         //handle_illegal();
                         zknd_zkne_result[i] = `XLEN'b0;
                     end
                     else begin
                             tmp1[i] = khu_in1[i][63:32];
-                            rc[i] = aes_decode_rcon(khu_in2[i][3:0]);
-                            if(khu_in2[i][3:0] == 4'hA) begin
+                            rc[i] = aes_decode_rcon(khu_in2_imm[i][3:0]);
+                            if(khu_in2_imm[i][3:0] == 4'hA) begin
                                 tmp2[i] = tmp1[i];
                             end
                             else begin
-                                tmp2[i] = (tmp1[i] >> 8) | (tmp1[i] << (24)); 
+                                tmp2[i] = (tmp1[i] >> 8) | (tmp1[i] << 24); 
                             end
                             tmp3[i] = aes_subword_fwd(tmp2[i]);
-                            zknd_zkne_result[i] = {{(`XLEN-64){1'b0}}, (tmp3[i] ^ rc[i]), (tmp3[i] ^ rc[i])}; //zero extension
+                            zknd_zkne_result[i] = {(tmp3[i] ^ rc[i]), (tmp3[i] ^ rc[i])}; 
                     end     
                 end
                 INST_KHU_AES64KS2: begin //AES64KS2

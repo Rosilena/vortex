@@ -83,134 +83,134 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   std::vector<test_type> h_dst(buf_size);
 
   //ROR
-  h_src0[0] = (test_type) 0xEF; //First operand
-  h_src1[0] = (test_type) 0x0F; //Second operand
+  h_src0[0] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[0] = (test_type) 0xAAAAAAAA; //Second operand
   //ROL
-  h_src0[1] = (test_type) 0xFE; //First operand
-  h_src1[1] = (test_type) 0x0F; //Second operand
+  h_src0[1] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[1] = (test_type) 0xAAAAAAAA; //Second operand
   //RORI
-  h_src0[2] = (test_type) 0x0F; //First operand
+  h_src0[2] = (test_type) 0xAAAAAAAA; //First operand
   //h_src1[2] = (test_type) 0x00; //Second operand
   //PACK
-  h_src0[3] = (test_type) 0xFF; //First operand
-  h_src1[3] = (test_type) 0xAA; //Second operand
+  h_src0[3] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[3] = (test_type) 0xAAAAAAAA; //Second operand
   //PACKH
-  h_src0[4] = (test_type) 0x0F; //First operand
-  h_src1[4] = (test_type) 0x0A; //Second operand
+  h_src0[4] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[4] = (test_type) 0xAAAAAAAA; //Second operand
   //BREV8
-  h_src0[5] = (test_type) 0x0F; //First operand
-  h_src1[5] = (test_type) 0x01; //Second operand
+  h_src0[5] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[5] = (test_type) 0xAAAAAAAA; //Second operand
   //REV8
-  h_src0[6] = (test_type) 0x0F; //First operand
-  h_src1[6] = (test_type) 0x01; //Second operand
+  h_src0[6] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[6] = (test_type) 0xAAAAAAAA; //Second operand
   //CLMUL
-  h_src0[7] = (test_type) 0x0F; //First operand
-  h_src1[7] = (test_type) 0x01; //Second operand
+  h_src0[7] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[7] = (test_type) 0xAAAAAAAA; //Second operand
   //CLMULH
-  h_src0[8] = (test_type) 0x0F; //First operand
-  h_src1[8] = (test_type) 0x01; //Second operand
+  h_src0[8] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[8] = (test_type) 0xAAAAAAAA; //Second operand
   //XPERM8
-  h_src0[9] = (test_type) 0x0F; //First operand
-  h_src1[9] = (test_type) 0x01; //Second operand
+  h_src0[9] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[9] = (test_type) 0xAAAAAAAA; //Second operand
   //XPERM4
-  h_src0[10] = (test_type) 0x0F; //First operand
-  h_src1[10] = (test_type) 0x01; //Second operand
+  h_src0[10] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[10] = (test_type) 0xAAAAAAAA; //Second operand
   //SHA256SIG0
-  h_src0[11] = (test_type) 0x0F; //First operand
-  h_src1[11] = (test_type) 0x01; //Second operand
+  h_src0[11] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[11] = (test_type) 0xAAAAAAAA; //Second operand
   //SHA256SIG1
-  h_src0[12] = (test_type) 0x0F; //First operand
-  h_src1[12] = (test_type) 0x01; //Second operand
+  h_src0[12] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[12] = (test_type) 0xAAAAAAAA; //Second operand
   //SHA256SUM0
-  h_src0[13] = (test_type) 0x0F; //First operand
-  h_src1[13] = (test_type) 0x01; //Second operand
+  h_src0[13] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[13] = (test_type) 0xAAAAAAAA; //Second operand
   //SHA256SUM1
-  h_src0[14] = (test_type) 0x0F; //First operand
-  h_src1[14] = (test_type) 0x01; //Second operand
+  h_src0[14] = (test_type) 0xAAAAAAAA; //First operand
+  h_src1[14] = (test_type) 0xAAAAAAAA; //Second operand
 
     #ifdef XLEN_64
     //RORW
-    h_src0[15] = (test_type) 0x0F; //First operand
-    h_src1[15] = (test_type) 0x01; //Second operand
+    h_src0[15] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[15] = (test_type) 0xAAAAAAAA; //Second operand
     //ROLW
-    h_src0[16] = (test_type) 0x0F; //First operand
-    h_src1[16] = (test_type) 0x01; //Second operand
+    h_src0[16] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[16] = (test_type) 0xAAAAAAAA; //Second operand
     //RORIW
-    h_src0[17] = (test_type) 0x0F; //First operand
-    h_src1[17] = (test_type) 0x01; //Second operand
+    h_src0[17] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[17] = (test_type) 0xAAAAAAAA; //Second operand
     //PACKW
-    h_src0[18] = (test_type) 0x0F; //First operand
-    h_src1[18] = (test_type) 0x01; //Second operand
+    h_src0[18] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[18] = (test_type) 0xAAAAAAAA; //Second operand
     //AES64DS
-    h_src0[19] = (test_type) 0x0F; //First operand
-    h_src1[19] = (test_type) 0x01; //Second operand
+    h_src0[19] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[19] = (test_type) 0xAAAAAAAA; //Second operand
     //AES64DSM
-    h_src0[20] = (test_type) 0x0F; //First operand
-    h_src1[20] = (test_type) 0x01; //Second operand
+    h_src0[20] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[20] = (test_type) 0xAAAAAAAA; //Second operand
     //AES64IM
-    h_src0[21] = (test_type) 0x0F; //First operand
-    h_src1[21] = (test_type) 0x01; //Second operand
+    h_src0[21] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[21] = (test_type) 0xAAAAAAAA; //Second operand
     //AES64KS1I
-    h_src0[22] = (test_type) 0x0F; //First operand
-    h_src1[22] = (test_type) 0x01; //Second operand
+    h_src0[22] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[22] = (test_type) 0xAAAAAAAA; //Second operand
     //AES64KS2
-    h_src0[23] = (test_type) 0x0F; //First operand
-    h_src1[23] = (test_type) 0x01; //Second operand
+    h_src0[23] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[23] = (test_type) 0xAAAAAAAA; //Second operand
     //AES64ES
-    h_src0[24] = (test_type) 0x0F; //First operand
-    h_src1[24] = (test_type) 0x01; //Second operand
+    h_src0[24] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[24] = (test_type) 0xAAAAAAAA; //Second operand
     //AES64ESM
-    h_src0[25] = (test_type) 0x0F; //First operand
-    h_src1[25] = (test_type) 0x01; //Second operand
+    h_src0[25] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[25] = (test_type) 0xAAAAAAAA; //Second operand
     //SHA512SIG0
-    h_src0[26] = (test_type) 0x0F; //First operand
-    h_src1[26] = (test_type) 0x01; //Second operand
+    h_src0[26] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[26] = (test_type) 0xAAAAAAAA; //Second operand
     //SHA512SIG1
-    h_src0[27] = (test_type) 0x0F; //First operand
-    h_src1[27] = (test_type) 0x01; //Second operand
+    h_src0[27] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[27] = (test_type) 0xAAAAAAAA; //Second operand
     //SHA512SUM0
-    h_src0[28] = (test_type) 0x0F; //First operand
-    h_src1[28] = (test_type) 0x01; //Second operand
+    h_src0[28] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[28] = (test_type) 0xAAAAAAAA; //Second operand
     //SHA512SUM1
-    h_src0[29] = (test_type) 0x0F; //First operand
-    h_src1[29] = (test_type) 0x01; //Second operand
+    h_src0[29] = (test_type) 0xAAAAAAAA; //First operand
+    h_src1[29] = (test_type) 0xAAAAAAAA; //Second operand
   #else
     //ZIP
-    h_src0[15] = (test_type) 0x0F; //First operand
-    h_src1[15] = (test_type) 0x01; //Second operand
+    h_src0[15] = (test_type) 0x12345678; //First operand
+    h_src1[15] = (test_type) 0x87654321; //Second operand
     //UNZIP
-    h_src0[16] = (test_type) 0x0F; //First operand
-    h_src1[16] = (test_type) 0x01; //Second operand
+    h_src0[16] = (test_type) 0x12345678; //First operand
+    h_src1[16] = (test_type) 0x87654321; //Second operand
     //AES32DSI
-    h_src0[17] = (test_type) 0x0F; //First operand
-    h_src1[17] = (test_type) 0x01; //Second operand
+    h_src0[17] = (test_type) 0x12345678; //First operand
+    h_src1[17] = (test_type) 0x87654321; //Second operand
     //AES32DSMI
-    h_src0[18] = (test_type) 0x0F; //First operand
-    h_src1[18] = (test_type) 0x01; //Second operand
+    h_src0[18] = (test_type) 0x12345678; //First operand
+    h_src1[18] = (test_type) 0x87654321; //Second operand
     //AES32ESI
-    h_src0[19] = (test_type) 0x0F; //First operand
-    h_src1[19] = (test_type) 0x01; //Second operand
+    h_src0[19] = (test_type) 0x12345678; //First operand
+    h_src1[19] = (test_type) 0x87654321; //Second operand
     //AES32ESMI
-    h_src0[20] = (test_type) 0x0F; //First operand
-    h_src1[20] = (test_type) 0x01; //Second operand
+    h_src0[20] = (test_type) 0x12345678; //First operand
+    h_src1[20] = (test_type) 0x87654321; //Second operand
     //SHA512SIG0H
-    h_src0[21] = (test_type) 0x0F; //First operand
-    h_src1[21] = (test_type) 0x01; //Second operand
+    h_src0[21] = (test_type) 0x12345678; //First operand
+    h_src1[21] = (test_type) 0x87654321; //Second operand
     //SHA512SIG0L
-    h_src0[22] = (test_type) 0x0F; //First operand
-    h_src1[22] = (test_type) 0x01; //Second operand
+    h_src0[22] = (test_type) 0x12345678; //First operand
+    h_src1[22] = (test_type) 0x87654321; //Second operand
     //SHA512SIG1H
-    h_src0[23] = (test_type) 0x0F; //First operand
-    h_src1[23] = (test_type) 0x01; //Second operand
+    h_src0[23] = (test_type) 0x12345678; //First operand
+    h_src1[23] = (test_type) 0x87654321; //Second operand
     //SHA512SIG1L
-    h_src0[24] = (test_type) 0x0F; //First operand
-    h_src1[24] = (test_type) 0x01; //Second operand
+    h_src0[24] = (test_type) 0x12345678; //First operand
+    h_src1[24] = (test_type) 0x87654321; //Second operand
     //SHA512SUM0R
-    h_src0[25] = (test_type) 0x0F; //First operand
-    h_src1[25] = (test_type) 0x01; //Second operand
+    h_src0[25] = (test_type) 0x12345678; //First operand
+    h_src1[25] = (test_type) 0x87654321; //Second operand
     //SHA512SUM1R
-    h_src0[26] = (test_type) 0x0F; //First operand
-    h_src1[26] = (test_type) 0x01; //Second operand
+    h_src0[26] = (test_type) 0x12345678; //First operand
+    h_src1[26] = (test_type) 0x87654321; //Second operand
   #endif
 
 

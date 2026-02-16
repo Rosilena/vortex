@@ -251,12 +251,19 @@ module VX_decode import VX_gpu_pkg::*; #(
                                         `ifdef XLEN_64
                                         INST_R_F7_AES5_INST: k_type = INST_KHU_AES64KS1I;
                                         `endif
-                                        default: k_type = INST_KHU_CLMUL;
+                                        default: k_type = 'x;
                                     endcase
                             endcase
                         end
                     end
-                    2'b10: k_type = INST_KHU_ROL;
+                    2'b10: begin
+                        if (funct7 == INST_R_F7_CLMUL_INST) begin
+                            k_type = INST_KHU_CLMUL;
+                        end
+                        else begin
+                            k_type = INST_KHU_ROL;
+                        end
+                    end
                     2'b11: k_type = INST_KHU_ROLW;
                     default: k_type = 'x;
                 endcase
@@ -392,14 +399,6 @@ module VX_decode import VX_gpu_pkg::*; #(
                     3'b001:
                         case(funct7)
                             `ifdef EXT_CRYPTO_ENABLE
-                                INST_R_F7_CLMUL_INST: begin
-                                    //CLMUL funct3 = 001
-                                    ex_type = EX_KHU;
-                                    op_args.khu.bs = 2'b00;
-                                    op_args.khu.use_imm = 0;
-                                    op_type = INST_OP_BITS'(k_type);
-                                    op_args.khu.xtype = KHU_TYPE_ZBKC_ZBKX;
-                                end
                                 INST_R_F7_SHA1_INST: begin
                                     //SHA256SIG0, SHA256SIG1, SHA256SUM0, SHA256SUM1, 
                                     //SHA512SIG0, SHA512SIG1, SHA512SUM0, SHA512SUM1 (only riscv 64)
@@ -426,7 +425,8 @@ module VX_decode import VX_gpu_pkg::*; #(
                                             //AES64IM, AES64KS1I funct3 = 001
                                             ex_type = EX_KHU;
                                             op_args.khu.bs = 2'b00;
-                                            op_args.khu.use_imm = 0;
+                                            op_args.khu.use_imm = 1;
+                                            op_args.khu.imm = {{(`XLEN-5){1'b0}}, rs2};
                                             op_type = INST_OP_BITS'(k_type);
                                             op_args.khu.xtype = KHU_TYPE_ZKND_ZKNE;
                                         end
@@ -499,7 +499,7 @@ module VX_decode import VX_gpu_pkg::*; #(
                         op_args.khu.xtype = KHU_TYPE_ZBKB;
                     end
                     INST_R_F7_CLMUL_INST, INST_R_F7_XPERM_INST: begin
-                            //CLMULH, XPERM8, XPERM4
+                            //CLMUL, CLMULH, XPERM8, XPERM4
                             ex_type = EX_KHU;
                             op_args.khu.bs = 2'b00;
                             op_args.khu.use_imm = 0;
@@ -564,31 +564,6 @@ module VX_decode import VX_gpu_pkg::*; #(
                     end
                 endcase
               end
-                /*
-                case(funct7[4:0])
-                    `ifdef EXT_CRYPTO_ENABLE
-                        `ifndef XLEN_64 //only RISCV 32
-                            INST_R_F7_AES1_INST, INST_R_F7_AES2_INST, INST_R_F7_AES7_INST, INST_R_F7_AES8_INST: begin
-                                //AES32DSI, AES32DSMI, AES32ESI, AES32ESMI
-                                ex_type = EX_KHU;
-                                op_args.khu.bs = funct7[6:5];
-                                op_args.khu.use_imm = 0;
-                                op_type = INST_OP_BITS'(k_type);
-                                op_args.khu.xtype = KHU_TYPE_ZKND_ZKNE;
-                            end
-                        `endif
-                    `endif
-                    default: begin
-                        ex_type = EX_ALU;
-                        op_args.alu.is_w = 0;
-                        op_args.alu.use_PC = 0;
-                        op_args.alu.use_imm = 0;
-                        op_type = INST_OP_BITS'(r_type);
-                        op_args.alu.xtype = ALU_TYPE_ARITH;
-                        end
-                endcase
-            end
-            */
         `ifdef XLEN_64
             INST_I_W: begin
                 case(funct3)
@@ -602,7 +577,7 @@ module VX_decode import VX_gpu_pkg::*; #(
                                     op_args.khu.xtype = KHU_TYPE_ZBKB;
                                     op_args.khu.bs = 2'b00;
                                     op_args.khu.use_imm = 1;
-                                    op_args.khu.imm = `SEXT(`XLEN, i_imm);  
+                                    op_args.khu.imm = `SEXT(`XLEN, iw_imm);  
                                 end
                             `endif
                             default: begin
