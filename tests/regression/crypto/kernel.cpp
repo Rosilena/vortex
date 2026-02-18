@@ -42,7 +42,7 @@ int main() {
           __asm__ (
                 "roriw %0, %1, %2"
                 : "=r"(dst_ptr[17])
-                : "r"(src0_ptr[17]), "i"(4)
+                : "r"(src0_ptr[17]), "i"(6)
           );
 
       #endif
@@ -165,7 +165,7 @@ int main() {
         __asm__ (
                 "aes64ks2 %0, %1, %2"
                 : "=r"(dst_ptr[23])
-                : "r"(src0_ptr[23]), "r"(src1_ptr[0])
+                : "r"(src0_ptr[23]), "r"(src1_ptr[23])
           );
 
       #endif

@@ -175,8 +175,8 @@ package VX_gpu_pkg;
     localparam INST_R_F7_ROTATE_INST =  7'b0110000; //ROR, ROL, RORI, RORW, ROLW, RORIW
 
 `else
-    localparam INST_R_F7_BREV_INST =    7'b0110100; //BREV8, 
-    localparam INST_R_F7_REV_INST =     7'b0110101; //BREV8, REV864
+    localparam INST_R_F7_BREV_INST =    7'b0110100; //BREV8 
+    localparam INST_R_F7_REV_INST =     7'b0110101; //REV864
     localparam INST_R_F7_ROTATE_INST =  7'b0110000; //ROR, ROL, RORW, ROLW, RORIW
     localparam INST_R_F7_RORI_INST   =  6'b011000; //RORI
 `endif

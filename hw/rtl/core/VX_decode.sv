@@ -577,7 +577,9 @@ module VX_decode import VX_gpu_pkg::*; #(
                                     op_args.khu.xtype = KHU_TYPE_ZBKB;
                                     op_args.khu.bs = 2'b00;
                                     op_args.khu.use_imm = 1;
-                                    op_args.khu.imm = `SEXT(`XLEN, iw_imm);  
+                                    op_args.khu.imm = `SEXT(`XLEN, iw_imm);
+                                    `USED_IREG (rd);
+                                    `USED_IREG (rs1);
                                 end
                             `endif
                             default: begin
