@@ -86,16 +86,16 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   std::vector<test_type> h_dst(buf_size);
 
   //ROR
-  h_src0[0] = (test_type) 0x1234567812345678; //First operand
+  h_src0[0] = (test_type) 0x12345678; //First operand
   h_src1[0] = (test_type) 0x87654321; //Second operand
   //ROL
-  h_src0[1] = (test_type) 0x1234567812345678; //First operand
+  h_src0[1] = (test_type) 0x12345678; //First operand
   h_src1[1] = (test_type) 0x87654321; //Second operand
   //ROR
-  h_src0[2] = (test_type) 0x1234567812345678; //First operand
+  h_src0[2] = (test_type) 0x12345678; //First operand
   h_src1[2] = (test_type) 0x87654321; //Second operand
   //ROL
-  h_src0[3] = (test_type) 0x1234567812345678; //First operand
+  h_src0[3] = (test_type) 0x12345678; //First operand
   h_src1[3] = (test_type) 0x87654321; //Second operand
 
 
