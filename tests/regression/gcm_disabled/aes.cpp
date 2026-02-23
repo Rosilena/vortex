@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdint.h>
 #include "common.h"
-#include <vx_print.h>
 
 // The number of columns comprising a state in AES. This is a constant in AES. Value=4
 #define Nb 4
@@ -288,7 +287,7 @@ void AES_CTR_xcrypt_buffer_parallel(struct AES_ctx* ctx, uint8_t* buf, size_t le
     }
   }
 
-  vx_printf("buffer[threadIdx][15] = %d \n", buffer[threadIdx][15]);
+  //vx_printf("buffer[threadIdx][15] = %d \n", buffer[threadIdx][15]);
   Cipher((state_t*)buffer[threadIdx], ctx->RoundKey);
 
   for (size_t j = 0; j < AES_BLOCKLEN; j++) {
