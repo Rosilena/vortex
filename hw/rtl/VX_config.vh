@@ -172,12 +172,14 @@
 
 `ifdef XLEN_64
 
+// STACK_BASE_ADDR = 64'h0A008F000 (Needed for SoC Example in Vivado)
 `ifndef STACK_BASE_ADDR
-`define STACK_BASE_ADDR 64'h0A008F000
+`define STACK_BASE_ADDR 64'h1FFFF0000
 `endif
 
+// STACK_BASE_ADDR = 64'h0A0080000 (Needed for SoC Example in Vivado)
 `ifndef STARTUP_ADDR
-`define STARTUP_ADDR    64'h0A0080000
+`define STARTUP_ADDR    64'h080000000
 `endif
 
 `ifndef USER_BASE_ADDR
@@ -197,10 +199,12 @@
 
 `else // XLEN_32
 
+// STACK_BASE_ADDR = 32'hA008F000 (Needed for SoC Example in Vivado)
 `ifndef STACK_BASE_ADDR
-`define STACK_BASE_ADDR 32'hA008F000
+`define STACK_BASE_ADDR 32'hFFFF0000
 `endif
 
+// STACK_BASE_ADDR = 32'hA008F000 (Needed for SoC Example in Vivado)
 `ifndef STARTUP_ADDR
 `define STARTUP_ADDR    32'hA0080000
 `endif

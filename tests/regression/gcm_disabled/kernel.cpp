@@ -17,7 +17,18 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
 
       AES_CTR_xcrypt_buffer_parallel(&ctx, in_ptr, arg->size_in, index);
 
+      int num_cores = 1;
+      vx_barrier(0, num_cores);
+      
       memcpy(out_ptr, in_ptr, arg->size_in);
+
+      if(index == 0){
+            //GCM Algorithm
+            vx_printf("I am Thread: %d", index);
+      }
+      else 
+            return;
+
 }
 
 int main() {
