@@ -4,27 +4,61 @@
 #include <string.h>
 #include "common.h"
 #include "aes.h"
+#include "aes-common.h"
 
 struct AES_ctx ctx;
+uint8_t H[AES_KEYLEN] = {0};
+uint8_t J0[AES_KEYLEN];
 
 void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
 	uint8_t* in_ptr  = (uint8_t*)arg->in_addr;
 	uint8_t* out_ptr = (uint8_t*)arg->out_addr;
+      uint8_t* iv_ptr = (uint8_t*)arg->iv_addr;
+      uint8_t* aad_ptr = (uint8_t*)arg->aad_addr;
+      uint8_t* tag_ptr = (uint8_t*)arg->tag_addr;
+      int num_cores = 1;
 
       size_t index = blockIdx.x * blockDim.x + threadIdx.x;
 
-      if(index >= arg->size_in / AES_BLOCKLEN) return; //se l'indice esce fuori dalla griglia (array)
+      if(index >= (arg->grid_dim * arg->block_dim)) return; //se l'indice esce fuori dalla griglia (array)
+
+      if(index == 0){
+            // Calcola H = AES(0^128)
+            uint8_t zero_block[AES_KEYLEN] = {0};
+            Cipher((state_t*)zero_block, ctx.RoundKey);
+            memcpy(H, zero_block, AES_KEYLEN);
+
+            // Prepara J0
+            aes_gcm_prepare_j0(iv_ptr, arg->size_iv, H, J0); // supponendo IV = 12 byte
+
+            uint8_t J0_ctr[AES_KEYLEN];
+            memcpy(J0_ctr, J0, AES_KEYLEN);
+            inc32(J0_ctr);
+            memcpy(ctx.Iv, J0_ctr, AES_KEYLEN);
+      }
+
+      vx_barrier(0, num_cores);
 
       AES_CTR_xcrypt_buffer_parallel(&ctx, in_ptr, arg->size_in, index);
 
-      int num_cores = 1;
       vx_barrier(0, num_cores);
       
       memcpy(out_ptr, in_ptr, arg->size_in);
 
       if(index == 0){
-            //GCM Algorithm
-            vx_printf("I am Thread: %d", index);
+            uint8_t S[AES_KEYLEN] = {0};
+            aes_gcm_ghash(H, aad_ptr, arg->size_aad, out_ptr, arg->size_in, S);
+
+            //uint8_t tag[AES_KEYLEN];
+            memcpy(tag_ptr, J0, AES_KEYLEN);
+
+            // tag = AES(J0)
+            Cipher((state_t*)tag_ptr, ctx.RoundKey);
+
+            // tag = tag XOR S
+            for(int i = 0; i < AES_KEYLEN; i++) {
+            tag_ptr[i] ^= S[i];
+            }
       }
       else 
             return;

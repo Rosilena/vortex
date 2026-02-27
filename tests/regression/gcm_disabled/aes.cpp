@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdint.h>
 #include "common.h"
+#include "aes-common.h"
+#include <vx_print.h>
 
 // The number of columns comprising a state in AES. This is a constant in AES. Value=4
 #define Nb 4
@@ -16,6 +18,8 @@
     #define Nk 4        // The number of 32 bit words in a key.
     #define Nr 10       // The number of rounds in AES Cipher.
 #endif
+
+#define MAX_THREADS 256
 
 //---------------------------------------SBOX----------------------------------------------
 static const uint8_t sbox[256] = {
@@ -208,7 +212,7 @@ static void MixColumns(state_t* state)
   }
 }
 
-static void Cipher(state_t* state, const uint8_t* RoundKey)
+void Cipher(state_t* state, const uint8_t* RoundKey)
 {
   uint8_t round = 0;
 
@@ -267,30 +271,195 @@ void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length)
   }
 }
 
-uint8_t buffer[4][AES_BLOCKLEN];
+uint8_t buffer[MAX_THREADS][AES_BLOCKLEN];
 
 void AES_CTR_xcrypt_buffer_parallel(struct AES_ctx* ctx, uint8_t* buf, size_t length, size_t threadIdx)
 {
   memcpy(buffer[threadIdx], ctx->Iv, AES_BLOCKLEN);
-
   //Increment Counter
   for (int z = 0; z < threadIdx; z++) {
-    for (size_t bi = (AES_BLOCKLEN - 1); bi >= 0; --bi) {
-      /* inc will overflow */
-      if (buffer[threadIdx][bi] == 255)
-      {
-        buffer[threadIdx][bi] = 0;
-        continue;
-      }
-      buffer[threadIdx][bi] += 1;
-      break;   
-    }
+    inc32(buffer[threadIdx]);
   }
 
-  //vx_printf("buffer[threadIdx][15] = %d \n", buffer[threadIdx][15]);
   Cipher((state_t*)buffer[threadIdx], ctx->RoundKey);
 
   for (size_t j = 0; j < AES_BLOCKLEN; j++) {
     buf[j + threadIdx * AES_BLOCKLEN] = (buf[j + threadIdx * AES_BLOCKLEN] ^ buffer[threadIdx][j]);
   }
+}
+
+
+
+////////////////////////////////////GCM////////////////////////////////////////////////////
+
+
+void inc32(uint8_t *block)
+{
+ 	aes_uint val;
+ 	val = AES_GET_BE32(block + AES_KEYLEN - 4);
+ 	val++;
+ 	AES_PUT_BE32(block + AES_KEYLEN - 4, val);
+}
+
+
+/*static void xor_block(uint8_t *dst, const uint8_t *src)
+{
+	aes_uint *d = (aes_uint *) dst;
+	aes_uint *s = (aes_uint *) src;
+	*d++ ^= *s++;
+	*d++ ^= *s++;
+	*d++ ^= *s++;
+	*d++ ^= *s++;
+}*/
+
+static void xor_block(uint8_t *dst, const uint8_t *src)
+{
+    for(int i = 0; i < 16; i++) dst[i] ^= src[i];
+}
+
+
+static void shift_right_block(uint8_t *v)
+{
+	aes_uint val;
+
+	val = AES_GET_BE32(v + 12);
+	val >>= 1;
+	if (v[11] & 0x01)
+		val |= 0x80000000;
+	AES_PUT_BE32(v + 12, val);
+
+	val = AES_GET_BE32(v + 8);
+	val >>= 1;
+	if (v[7] & 0x01)
+		val |= 0x80000000;
+	AES_PUT_BE32(v + 8, val);
+
+	val = AES_GET_BE32(v + 4);
+	val >>= 1;
+	if (v[3] & 0x01)
+		val |= 0x80000000;
+	AES_PUT_BE32(v + 4, val);
+
+	val = AES_GET_BE32(v);
+	val >>= 1;
+	AES_PUT_BE32(v, val);
+}
+
+
+/* Multiplication in GF(2^128) */
+static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
+{
+ 	uint8_t v[16];
+ 	int i, j;
+ 	memset(z, 0, 16); /* Z_0 = 0^128 */
+ 	memcpy(v, y, 16); /* V_0 = Y */
+ 	for (i = 0; i < 16; i++) {
+ 		for (j = 0; j < 8; j++) {
+ 			if (x[i] & 1 << (7 - j)) {
+ 				/* Z_(i + 1) = Z_i XOR V_i */
+ 				xor_block(z, v);
+ 			} else {
+ 				/* Z_(i + 1) = Z_i */
+ 			}
+ 			if (v[15] & 0x01) {
+ 				/* V_(i + 1) = (V_i >> 1) XOR R */
+ 				shift_right_block(v);
+ 				/* R = 11100001 || 0^120 */
+ 				v[0] ^= 0xe1;
+ 			} else {
+ 				/* V_(i + 1) = V_i >> 1 */
+ 				shift_right_block(v);
+ 			}
+ 		}
+ 	}
+}
+
+
+
+static void ghash_start(uint8_t *y)
+{
+	/* Y_0 = 0^128 */
+	memset(y, 0, 16);
+}
+
+
+static void ghash(const uint8_t *h, const uint8_t *x, size_t xlen, uint8_t *y)
+{
+	size_t m, i;
+	const uint8_t *xpos = x;
+	uint8_t tmp[16];
+
+	m = xlen / 16;
+
+	for (i = 0; i < m; i++) {
+		/* Y_i = (Y^(i-1) XOR X_i) dot H */
+		xor_block(y, xpos);
+		xpos += 16;
+
+		/* dot operation:
+		 * multiplication operation for binary Galois (finite) field of
+		 * 2^128 elements */
+		gf_mult(y, h, tmp);
+		memcpy(y, tmp, 16);
+	}
+
+	if (x + xlen > xpos) {
+		/* Add zero padded last block */
+		size_t last = x + xlen - xpos;
+		memcpy(tmp, xpos, last);
+		memset(tmp + last, 0, sizeof(tmp) - last);
+
+		/* Y_i = (Y^(i-1) XOR X_i) dot H */
+		xor_block(y, tmp);
+
+		/* dot operation:
+		 * multiplication operation for binary Galois (finite) field of
+		 * 2^128 elements */
+		gf_mult(y, h, tmp);
+		memcpy(y, tmp, 16);
+	}
+
+	/* Return Y_m */
+}
+
+
+void aes_gcm_prepare_j0(const uint8_t *iv, size_t iv_len, const uint8_t *H, uint8_t *J0)
+{
+	uint8_t len_buf[16];
+
+	if (iv_len == 12) {
+		/* Prepare block J_0 = IV || 0^31 || 1 [len(IV) = 96] */
+		memcpy(J0, iv, iv_len);
+		memset(J0 + iv_len, 0, AES_KEYLEN - iv_len);
+		J0[AES_KEYLEN - 1] = 0x01;
+	} else {
+		/*
+		 * s = 128 * ceil(len(IV)/128) - len(IV)
+		 * J_0 = GHASH_H(IV || 0^(s+64) || [len(IV)]_64)
+		 */
+		ghash_start(J0);
+		ghash(H, iv, iv_len, J0);
+		AES_PUT_BE64(len_buf, 0);
+		AES_PUT_BE64(len_buf + 8, iv_len * 8);
+		ghash(H, len_buf, sizeof(len_buf), J0);
+	}
+}
+
+void aes_gcm_ghash(const uint8_t *H, const uint8_t *aad, size_t aad_len,
+			  const uint8_t *crypt, size_t crypt_len, uint8_t *S)
+{
+	uint8_t len_buf[16];
+
+	/*
+	 * u = 128 * ceil[len(C)/128] - len(C)
+	 * v = 128 * ceil[len(A)/128] - len(A)
+	 * S = GHASH_H(A || 0^v || C || 0^u || [len(A)]64 || [len(C)]64)
+	 * (i.e., zero padded to block size A || C and lengths of each in bits)
+	 */
+	ghash_start(S);
+	ghash(H, aad, aad_len, S);
+	ghash(H, crypt, crypt_len, S);
+	AES_PUT_BE64(len_buf, aad_len * 8);
+	AES_PUT_BE64(len_buf + 8, crypt_len * 8);
+	ghash(H, len_buf, sizeof(len_buf), S);
 }

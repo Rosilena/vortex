@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include "aes-common.h"
 
 #define AES128 1
 //#define AES192 1
@@ -27,8 +28,15 @@ struct AES_ctx
   uint8_t Iv[AES_BLOCKLEN];
 };
 
+typedef uint8_t state_t[4][4];
+
 void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length);
 void AES_init_ctx_iv(struct AES_ctx* ctx, const uint8_t* key, const uint8_t* iv);
 void AES_CTR_xcrypt_buffer_parallel(struct AES_ctx* ctx, uint8_t* buf, size_t length, size_t threadIdx);
+void inc32(uint8_t *block);
+void Cipher(state_t* state, const uint8_t* RoundKey);
+void aes_gcm_prepare_j0(const uint8_t *iv, size_t iv_len, const uint8_t *H, uint8_t *J0);
+void aes_gcm_ghash(const uint8_t *H, const uint8_t *aad, size_t aad_len,
+			  const uint8_t *crypt, size_t crypt_len, uint8_t *S);
 
 #endif

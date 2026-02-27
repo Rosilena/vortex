@@ -4,8 +4,9 @@ include $(ROOT_DIR)/config.mk
 all:
 	$(MAKE) -C basic
 	$(MAKE) -C demo
+	$(MAKE) -C aes_parallel
 	$(MAKE) -C gcm_disabled
-	$(MAKE) -C gcm_new_disabled
+	$(MAKE) -C gcm_enabled
 	$(MAKE) -C dogfood
 	$(MAKE) -C dropout
 	$(MAKE) -C dotproduct
@@ -27,8 +28,9 @@ all:
 run-simx:
 	$(MAKE) -C basic run-simx
 	$(MAKE) -C demo run-simx
+	$(MAKE) -C aes_parallel run-simx
 	$(MAKE) -C gcm_disabled run-simx
-	$(MAKE) -C gcm_new_disabled run-simx
+	$(MAKE) -C gcm_enabled run-simx
 	$(MAKE) -C dogfood run-simx
 	$(MAKE) -C dropout run-simx
 	$(MAKE) -C dotproduct run-simx
@@ -50,8 +52,9 @@ run-simx:
 run-rtlsim:
 	$(MAKE) -C basic run-rtlsim
 	$(MAKE) -C demo run-rtlsim
+	$(MAKE) -C aes_parallel run-rtlsim
 	$(MAKE) -C gcm_disabled run-rtlsim
-	$(MAKE) -C gcm_new_disabled run-rtlsim
+	$(MAKE) -C gcm_enabled run-rtlsim
 	$(MAKE) -C dogfood run-rtlsim
 	$(MAKE) -C dropout run-rtlsim
 	$(MAKE) -C dotproduct run-rtlsim
@@ -73,8 +76,9 @@ run-rtlsim:
 clean:
 	$(MAKE) -C basic clean
 	$(MAKE) -C demo clean
+	$(MAKE) -C aes_parallel clean
 	$(MAKE) -C gcm_disabled clean
-	$(MAKE) -C gcm_new_disabled clean
+	$(MAKE) -C gcm_enabled clean
 	$(MAKE) -C dogfood clean
 	$(MAKE) -C dropout clean
 	$(MAKE) -C dotproduct clean
