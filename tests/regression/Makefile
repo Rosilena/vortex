@@ -5,6 +5,7 @@ all:
 	$(MAKE) -C basic
 	$(MAKE) -C demo
 	$(MAKE) -C gcm_disabled
+	$(MAKE) -C gcm_new_disabled
 	$(MAKE) -C dogfood
 	$(MAKE) -C dropout
 	$(MAKE) -C dotproduct
@@ -27,6 +28,7 @@ run-simx:
 	$(MAKE) -C basic run-simx
 	$(MAKE) -C demo run-simx
 	$(MAKE) -C gcm_disabled run-simx
+	$(MAKE) -C gcm_new_disabled run-simx
 	$(MAKE) -C dogfood run-simx
 	$(MAKE) -C dropout run-simx
 	$(MAKE) -C dotproduct run-simx
@@ -49,6 +51,7 @@ run-rtlsim:
 	$(MAKE) -C basic run-rtlsim
 	$(MAKE) -C demo run-rtlsim
 	$(MAKE) -C gcm_disabled run-rtlsim
+	$(MAKE) -C gcm_new_disabled run-rtlsim
 	$(MAKE) -C dogfood run-rtlsim
 	$(MAKE) -C dropout run-rtlsim
 	$(MAKE) -C dotproduct run-rtlsim
@@ -71,6 +74,7 @@ clean:
 	$(MAKE) -C basic clean
 	$(MAKE) -C demo clean
 	$(MAKE) -C gcm_disabled clean
+	$(MAKE) -C gcm_new_disabled clean
 	$(MAKE) -C dogfood clean
 	$(MAKE) -C dropout clean
 	$(MAKE) -C dotproduct clean

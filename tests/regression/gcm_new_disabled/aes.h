@@ -1,0 +1,42 @@
+#ifndef AES_H
+#define AES_H
+
+#include <stdint.h>
+#include <stdlib.h>
+#include "aes-common.h"
+
+#define AES128 1
+//#define AES192 1
+//#define AES256 1
+
+#define AES_BLOCKLEN 16 // Block length in bytes - AES is 128b block only
+
+#if defined(AES256) && (AES256 == 1)
+    #define AES_KEYLEN 32
+    #define AES_keyExpSize 240
+#elif defined(AES192) && (AES192 == 1)
+    #define AES_KEYLEN 24
+    #define AES_keyExpSize 208
+#else
+    #define AES_KEYLEN 16   // Key length in bytes
+    #define AES_keyExpSize 176
+#endif
+
+struct AES_ctx
+{
+  uint8_t RoundKey[AES_keyExpSize];
+  uint8_t Iv[AES_BLOCKLEN];
+};
+
+typedef uint8_t state_t[4][4];
+
+void AES_CTR_xcrypt_buffer(struct AES_ctx* ctx, uint8_t* buf, size_t length);
+void AES_init_ctx_iv(struct AES_ctx* ctx, const uint8_t* key, const uint8_t* iv);
+void AES_CTR_xcrypt_buffer_parallel(struct AES_ctx* ctx, uint8_t* buf, size_t length, size_t threadIdx);
+void inc32(aes_uchar *block);
+void Cipher(state_t* state, const uint8_t* RoundKey);
+void aes_gcm_prepare_j0(const aes_uchar *iv, size_t iv_len, const aes_uchar *H, aes_uchar *J0);
+void aes_gcm_ghash(const aes_uchar *H, const aes_uchar *aad, size_t aad_len,
+			  const aes_uchar *crypt, size_t crypt_len, aes_uchar *S);
+
+#endif
