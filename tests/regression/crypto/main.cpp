@@ -33,6 +33,19 @@ vx_buffer_h krnl_buffer = nullptr;
 vx_buffer_h args_buffer = nullptr;
 kernel_arg_t kernel_arg = {};
 
+inline uint64_t AES_GET_BE64(const uint8_t a[], const size_t &offset)
+{
+	return                        \
+    (((uint64_t) a[0 + offset]) << 56) | \
+    (((uint64_t) a[1 + offset]) << 48) | \
+    (((uint64_t) a[2 + offset]) << 40) | \
+    (((uint64_t) a[3 + offset]) << 32) | \
+    (((uint64_t) a[4 + offset]) << 24) | \
+    (((uint64_t) a[5 + offset]) << 16) | \
+    (((uint64_t) a[6 + offset]) <<  8) | \
+    (((uint64_t) a[7 + offset]));
+}
+
 static void show_usage() {
    std::cout << "Vortex Test for Cryptographic Extensions...." << std::endl;
    std::cout << "Usage: [-t testno][-k: kernel][-n words][-h: help]" << std::endl;
@@ -295,6 +308,9 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
     std::cout << "SHA512SUM0R  = " << std::hex << h_dst[25] << std::endl;
     std::cout << "SHA512SUM1R  = " << std::hex << h_dst[26] << std::endl;
   #endif
+
+  std::cout << "KEY  = " << std::hex << AES_GET_BE64((uint8_t*) &h_dst[30], 0) << std::endl;
+  std::cout << "KEY  = " << std::hex << AES_GET_BE64((uint8_t*) &h_dst[31], 0) << std::endl;
 
   auto time_end = std::chrono::high_resolution_clock::now();
 

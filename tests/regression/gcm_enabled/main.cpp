@@ -82,6 +82,7 @@ uint8_t tag_u8[LEN_TAG] = {
     0x3a, 0x7a, 0x56, 0x05, 0x09, 0xa2, 0xd9, 0xf2
 };
 
+
   static void show_usage() {
    std::cout << "Vortex Test for AES Counter Mode...." << std::endl;
    std::cout << "Usage: [-t testno][-k: kernel][-n words][-h: help]" << std::endl;
@@ -229,8 +230,8 @@ int main(int argc, char *argv[]) {
     count = 1;
   }
   
-  kernel_arg.block_dim = 1;
-  kernel_arg.roundkeys = 10;
+  kernel_arg.block_dim = SIZE_IN / AES_BLOCKLEN;
+  kernel_arg.roundkeys = Nr;
   kernel_arg.grid_dim  = 1;
   kernel_arg.size_in   = SIZE_IN;
   kernel_arg.size_iv = SIZE_IV;

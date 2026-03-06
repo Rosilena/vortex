@@ -1,5 +1,20 @@
 #include <vx_intrinsics.h>
 #include "common.h"
+#include <vx_spawn.h>
+#include <vx_print.h>
+
+#define AES_KEYROUND(RND) \
+      __asm__ (                                                                 \
+            "aes64ks1i t0, %2," #RND "\n\t"                                     \
+            "aes64ks2  %0, t0, %3 \n\t"                                         \
+            "aes64ks2  %1, %4, %2"                                              \
+            : "=r"(key[RND][0]), "=r"(key[RND][1])                              \
+            : "r"(key[RND - 1][1]), "r"(key[RND - 1][0]), "0"(key[RND][0])      \
+            : "t0"                                                              \
+      );
+
+uint8_t key_u8[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+uint64_t key[11][2];
 
 
 int main() {
@@ -159,7 +174,7 @@ int main() {
         __asm__ (
                 "aes64ks1i %0, %1, %2"
                 : "=r"(dst_ptr[22])
-                : "r"(src0_ptr[22]), "i"(5)
+                : "r"(src0_ptr[22]), "i"(1)
           );
 
         __asm__ (
@@ -291,5 +306,17 @@ int main() {
                   : "r"(src0_ptr[29])
             );
       #endif
-	return 0;
+
+      //key[0][0] = AES_GET_BE64(key_u8, 0);
+      //key[0][1] = AES_GET_BE64(key_u8, 8);
+
+      key[0][0] = *((uint64_t*) &key_u8[0]);
+      key[0][1] = *((uint64_t*) &key_u8[8]);
+
+      AES_KEYROUND(1);
+
+      dst_ptr[30] = key[1][0];
+      dst_ptr[31] = key[1][1];
+      	
+      return 0;
 }

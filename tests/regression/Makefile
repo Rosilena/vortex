@@ -4,6 +4,7 @@ include $(ROOT_DIR)/config.mk
 all:
 	$(MAKE) -C basic
 	$(MAKE) -C demo
+	$(MAKE) -C crypto
 	$(MAKE) -C aes_parallel
 	$(MAKE) -C gcm_disabled
 	$(MAKE) -C gcm_enabled
@@ -28,6 +29,7 @@ all:
 run-simx:
 	$(MAKE) -C basic run-simx
 	$(MAKE) -C demo run-simx
+	$(MAKE) -C crypto run-simx
 	$(MAKE) -C aes_parallel run-simx
 	$(MAKE) -C gcm_disabled run-simx
 	$(MAKE) -C gcm_enabled run-simx
@@ -52,6 +54,7 @@ run-simx:
 run-rtlsim:
 	$(MAKE) -C basic run-rtlsim
 	$(MAKE) -C demo run-rtlsim
+	$(MAKE) -C crypto run-rtlsim
 	$(MAKE) -C aes_parallel run-rtlsim
 	$(MAKE) -C gcm_disabled run-rtlsim
 	$(MAKE) -C gcm_enabled run-rtlsim
@@ -76,6 +79,7 @@ run-rtlsim:
 clean:
 	$(MAKE) -C basic clean
 	$(MAKE) -C demo clean
+	$(MAKE) -C crypto clean
 	$(MAKE) -C aes_parallel clean
 	$(MAKE) -C gcm_disabled clean
 	$(MAKE) -C gcm_enabled clean
