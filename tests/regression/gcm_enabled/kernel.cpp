@@ -11,11 +11,12 @@ uint8_t H[AES_KEYLEN] = {0};
 uint8_t J0[AES_KEYLEN];
 uint8_t buffer[MAX_THREADS][AES_BLOCKLEN];
 
-typedef union { 
-	uint8_t b[16]; 
-	uint32_t w[4]; 
-	uint64_t d[2]; 
-} gf128_t;
+// typedef union { 
+// 	uint8_t b[16]; 
+// 	uint32_t w[4]; 
+// 	uint64_t d[2]; 
+// } gf128_t;
+
 
 void print_aes_state(state_t aes_state, const int &rnd) {
       vx_printf("RND %d State ", rnd);
@@ -213,7 +214,7 @@ static void shift_right_block(uint8_t *v)
 //  	}
 // }
 
-void ghash_mul_rv64(gf128_t * z, const gf128_t * x, const gf128_t * h)
+/*void ghash_mul_rv64(gf128_t * z, const gf128_t * x, const gf128_t * h)
 {
 	uint64_t x0, x1, y0, y1;
 	uint64_t z0, z1, z2, z3, t0, t1, t2;
@@ -306,6 +307,139 @@ static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
 
     memcpy(z, Z.b, 16);
 }
+*/
+
+static inline uint64_t bswap64(uint64_t x)
+{
+    return __builtin_bswap64(x);
+}
+
+void print_block(const char *name, const uint8_t *b)
+{
+    vx_printf("%s: ", name);
+    for (int i = 0; i < 16; i++)
+        vx_printf("%02x ", b[i]);
+    vx_printf("\n");
+}
+
+uint64_t get_bit(uint64_t v[], int j){
+    if (j > 255)
+        return 0;
+    
+    if (j < 0)
+        return 0;
+    return ((v[j/64] & (1L << (j % 64))) != 0 ? 1 : 0);
+}
+
+void set_bit(uint64_t v[], int j, int val){
+    if (j > 255)
+        return;
+    
+    if (j < 0)
+        return;
+    //vx_printf(" 1 << 0 %016llx\n", (1L << (j % 64)));
+    if (val)
+        v[j/64] |=  (1L << (j % 64));
+    else 
+        v[j/64] &= ~(1L << (j % 64));
+}
+
+void shiftl_by(uint64_t v[], uint64_t v_s[], int j) {
+    for (int i = 255; i >= 0; i--) {
+        //vx_printf("shft: %016llx %016llx %016llx %016llx\n", v_s[3], v_s[2], v_s[1], v_s[0]);
+        //vx_printf("\n");
+        //vx_printf(" i=%d j=%d get_bit=%d", i, j, get_bit(v, i - j));
+        if (i >= j )
+            set_bit(v_s, i, get_bit(v, i - j));
+        else
+            set_bit(v_s, i, 0);
+    }
+}
+
+
+static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
+{
+    uint64_t x0, x1, y0, y1;
+    uint64_t z0h, z1h, z2h, z3h;
+    uint64_t z0l, z1l, z2l, z3l;
+
+
+    x0 = ((uint64_t*) x)[0];
+    x1 = ((uint64_t*) x)[1];
+
+    y0 = ((uint64_t*) y)[0];
+    y1 = ((uint64_t*) y)[1];
+
+    x0 = bswap64(x0);
+    x1 = bswap64(x1);
+    y0 = bswap64(y0);
+    y1 = bswap64(y1);
+
+    vx_printf("x: %016llx %016llx\n", x0, x1);
+    vx_printf("y: %016llx %016llx\n", y0, y1);
+    vx_printf("\n");
+
+    __asm__ (
+        "clmulh %0, %2, %3\n\t"
+        "clmul  %1, %2, %3\n\t"
+        : "=r"(z0h), "=r"(z0l)
+        : "r"(x0), "r"(y0)
+    );
+
+    __asm__ (
+        "clmulh %0, %2, %3\n\t"
+        "clmul  %1, %2, %3\n\t"
+        : "=r"(z1h), "=r"(z1l)
+        : "r"(x0), "r"(y1)
+    );
+
+    __asm__ (
+        "clmulh %0, %2, %3\n\t"
+        "clmul  %1, %2, %3\n\t"
+        : "=r"(z2h), "=r"(z2l)
+        : "r"(x1), "r"(y0)
+    );
+
+        __asm__ (
+        "clmulh %0, %2, %3\n\t"
+        "clmul  %1, %2, %3\n\t"
+        : "=r"(z3h), "=r"(z3l)
+        : "r"(x1), "r"(y1)
+    );
+    
+    uint64_t r[4] = {0};
+    r[0] = (z0l);
+    r[1] = (z2l ^ z1l ^ z0h);
+    r[2] = (z3l ^ z2h ^ z1h);
+    r[3] = (z3h);
+
+    uint64_t g[4]      = {0};
+    uint64_t g_shft[4] = {0};
+    uint64_t tmp[4]    = {0};
+
+    g[2] = 0x1;
+    g[0] = 0b10000111; 
+
+    for(int j = 127; j >= 0; j--) {
+        if (get_bit(r, j + 128) == 1) {
+            shiftl_by(g, g_shft, j);
+
+            //vx_printf("g_shft: %016llx %016llx %016llx %016llx\n", g_shft[3], g_shft[2], g_shft[1], g_shft[0]);
+            //vx_printf("\n");  
+
+            r[0] ^= g_shft[0];
+            r[1] ^= g_shft[1];
+            r[2] ^= g_shft[2];
+            r[3] ^= g_shft[3];
+        }
+    }
+
+    memcpy(z, &r[1], 8);
+    memcpy(z + 8, &r[0], 8);
+
+    print_block("z", z);
+}
+
 
 static void ghash_start(uint8_t *y)
 {
