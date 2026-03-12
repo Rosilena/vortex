@@ -370,10 +370,15 @@ static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
     y0 = ((uint64_t*) y)[0];
     y1 = ((uint64_t*) y)[1];
 
-    x0 = bswap64(x0);
-    x1 = bswap64(x1);
-    y0 = bswap64(y0);
-    y1 = bswap64(y1);
+    __asm__ ("brev8 %0, %1" : "=r"(x0) : "r"(x0));
+    __asm__ ("brev8 %0, %1" : "=r"(x1) : "r"(x1));
+    __asm__ ("brev8 %0, %1" : "=r"(y0) : "r"(y0));
+    __asm__ ("brev8 %0, %1" : "=r"(y1) : "r"(y1));
+
+    // x0 = bswap64(x0);
+    // x1 = bswap64(x1);
+    // y0 = bswap64(y0);
+    // y1 = bswap64(y1);
 
     vx_printf("x: %016llx %016llx\n", x0, x1);
     vx_printf("y: %016llx %016llx\n", y0, y1);
@@ -413,30 +418,57 @@ static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
     r[2] = (z3l ^ z2h ^ z1h);
     r[3] = (z3h);
 
-    uint64_t g[4]      = {0};
-    uint64_t g_shft[4] = {0};
-    uint64_t tmp[4]    = {0};
+    // uint64_t g[4]      = {0};
+    // uint64_t g_shft[4] = {0};
+    // uint64_t tmp[4]    = {0};
 
-    g[2] = 0x1;
-    g[0] = 0b10000111; 
+    // g[2] = 0x1;
+    // g[0] = 0b10000111; 
 
-    for(int j = 127; j >= 0; j--) {
-        if (get_bit(r, j + 128) == 1) {
-            shiftl_by(g, g_shft, j);
+    // for(int j = 127; j >= 0; j--) {
+    //     if (get_bit(r, j + 128) == 1) {
+    //         shiftl_by(g, g_shft, j);
 
-            //vx_printf("g_shft: %016llx %016llx %016llx %016llx\n", g_shft[3], g_shft[2], g_shft[1], g_shft[0]);
-            //vx_printf("\n");  
+    //         //vx_printf("g_shft: %016llx %016llx %016llx %016llx\n", g_shft[3], g_shft[2], g_shft[1], g_shft[0]);
+    //         //vx_printf("\n");  
 
-            r[0] ^= g_shft[0];
-            r[1] ^= g_shft[1];
-            r[2] ^= g_shft[2];
-            r[3] ^= g_shft[3];
-        }
-    }
+    //         r[0] ^= g_shft[0];
+    //         r[1] ^= g_shft[1];
+    //         r[2] ^= g_shft[2];
+    //         r[3] ^= g_shft[3];
+    //     }
+    // }
 
-    memcpy(z, &r[1], 8);
-    memcpy(z + 8, &r[0], 8);
+    uint64_t z0 = r[0];
+    uint64_t z1 = r[1];
+    uint64_t z2 = r[2];
+    uint64_t z3 = r[3];
 
+    /* shift reduction */
+
+    z2 ^= (z3 >> 63) ^ (z3 >> 62) ^ (z3 >> 57);
+
+    z1 ^= z3 ^ (z3 << 1) ^ (z3 << 2) ^ (z3 << 7) ^
+        (z2 >> 63) ^ (z2 >> 62) ^ (z2 >> 57);
+
+    z0 ^= z2 ^ (z2 << 1) ^ (z2 << 2) ^ (z2 << 7);
+
+    /* result */
+
+    r[0] = z0;
+    r[1] = z1;
+
+    // r[0] = bswap64(r[0]);
+    // r[1] = bswap64(r[1]);
+    // memcpy(z, &r[0], 8);
+    // memcpy(z + 8, &r[1], 8);
+
+
+    __asm__ ("brev8 %0, %1" : "=r"(r[0]) : "r"(r[0]));
+    __asm__ ("brev8 %0, %1" : "=r"(r[1]) : "r"(r[1]));
+
+    memcpy(z, &r[0], 8);
+    memcpy(z + 8, &r[1], 8);
     print_block("z", z);
 }
 
