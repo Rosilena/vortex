@@ -122,17 +122,17 @@ static void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key)
     RoundKey[j + 3] = RoundKey[k + 3] ^ tempa[3];
   }
 
-  for (int r = 0; r < Nr + 1; r++) {
-    vx_printf("key %d: ", r);
+  // for (int r = 0; r < Nr + 1; r++) {
+  //   vx_printf("key %d: ", r);
 
-    for (int b = 0; b < 16; b++) {
-        vx_printf("%02x", RoundKey[r * 16 + b]);
-        if( b == 7){
-          vx_printf(" ");
-        }
-    }
-    vx_printf("\n");
-  }
+  //   for (int b = 0; b < 16; b++) {
+  //       vx_printf("%02x", RoundKey[r * 16 + b]);
+  //       if( b == 7){
+  //         vx_printf(" ");
+  //       }
+  //   }
+  //   vx_printf("\n");
+  // }
 }
 
 void AES_init_ctx(struct AES_ctx* ctx, const uint8_t* key)
@@ -231,15 +231,15 @@ void Cipher(state_t* state, const uint8_t* RoundKey)
   // Add the First round key to the state before starting the rounds.
   AddRoundKey(0, state, RoundKey);
 
-  vx_printf("RND 0 State ");
+  // vx_printf("RND 0 State ");
 
-  for (int b = 0; b < 16; b++) {
-      vx_printf("%02x", ((uint8_t*) state)[b]);
-      if( b == 7){
-        vx_printf(" ");
-      }
-  }
-  vx_printf("\n");
+  // for (int b = 0; b < 16; b++) {
+  //     vx_printf("%02x", ((uint8_t*) state)[b]);
+  //     if( b == 7){
+  //       vx_printf(" ");
+  //     }
+  // }
+  // vx_printf("\n");
 
   // There will be Nr rounds.
   // The first Nr-1 rounds are identical.
@@ -256,28 +256,28 @@ void Cipher(state_t* state, const uint8_t* RoundKey)
     AddRoundKey(round, state, RoundKey);
 
 
-    vx_printf("RND %d State ", round);
+    // vx_printf("RND %d State ", round);
 
-    for (int b = 0; b < 16; b++) {
-        vx_printf("%02x", ((uint8_t*) state)[b]);
-        if( b == 7){
-          vx_printf(" ");
-        }
-    }
-    vx_printf("\n");
+    // for (int b = 0; b < 16; b++) {
+    //     vx_printf("%02x", ((uint8_t*) state)[b]);
+    //     if( b == 7){
+    //       vx_printf(" ");
+    //     }
+    // }
+    // vx_printf("\n");
   }
   // Add round key to last round
   AddRoundKey(Nr, state, RoundKey);
 
-  vx_printf("RND %d State ", 10);
+  // vx_printf("RND %d State ", 10);
 
-  for (int b = 0; b < 16; b++) {
-      vx_printf("%02x", ((uint8_t*) state)[b]);
-      if( b == 7){
-        vx_printf(" ");
-      }
-  }
-  vx_printf("\n");
+  // for (int b = 0; b < 16; b++) {
+  //     vx_printf("%02x", ((uint8_t*) state)[b]);
+  //     if( b == 7){
+  //       vx_printf(" ");
+  //     }
+  // }
+  // vx_printf("\n");
 }
 
 
@@ -397,9 +397,9 @@ static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
     memset(z, 0, 16); /* Z_0 = 0^128 */
     memcpy(v, y, 16); /* V_0 = Y */
 
-    vx_printf("GF_MULT START\n");
-    vx_printf("X = "); for(int b=0;b<16;b++) vx_printf("%02x ", x[b]); vx_printf("\n");
-    vx_printf("Y = "); for(int b=0;b<16;b++) vx_printf("%02x ", y[b]); vx_printf("\n");
+    // vx_printf("GF_MULT START\n");
+    // vx_printf("X = "); for(int b=0;b<16;b++) vx_printf("%02x ", x[b]); vx_printf("\n");
+    // vx_printf("Y = "); for(int b=0;b<16;b++) vx_printf("%02x ", y[b]); vx_printf("\n");
 
     for (i = 0; i < 16; i++) {
         for (j = 0; j < 8; j++) {
@@ -419,8 +419,8 @@ static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
         }
     }
 
-    vx_printf("GF_MULT END\n");
-    vx_printf("Result Z = "); for(int b=0;b<16;b++) vx_printf("%02x ", z[b]); vx_printf("\n");
+    // vx_printf("GF_MULT END\n");
+    // vx_printf("Result Z = "); for(int b=0;b<16;b++) vx_printf("%02x ", z[b]); vx_printf("\n");
 }
 
 

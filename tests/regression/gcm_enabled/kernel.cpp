@@ -56,6 +56,7 @@ void aes_round(state_t aes_state, const int &rnd, uint64_t round_keys[Nr + 1][2]
             "xor      %1, t1, %5\n\t"
             : "=r"(aes_state[0]), "=r"(aes_state[1])
             : "0"(aes_state[0]), "1"(aes_state[1]), "r"(round_keys[rnd][0]), "r"(round_keys[rnd][1])
+            : "t0", "t1"
     );
 }
 
@@ -67,6 +68,7 @@ void aes_final_round(state_t aes_state, const int &rnd, uint64_t round_keys[Nr +
             "xor     %1, t1, %5\n\t"
             : "=r"(aes_state[0]), "=r"(aes_state[1])
             : "0"(aes_state[0]), "1"(aes_state[1]), "r"(round_keys[rnd][0]), "r"(round_keys[rnd][1])
+            : "t0", "t1"
     );
 }
 
@@ -87,8 +89,8 @@ void keyExpansion(uint64_t key[Nr+1][2]) {
             uint64_t key_be_low  = AES_GET_BE64((uint8_t*) &(key[i][1]), 0);
             uint64_t key_be_high = AES_GET_BE64((uint8_t*) &(key[i][0]), 0);
 
-            vx_printf("key %d ", i);
-            vx_printf(" 0x%016lx " "0x%016lx \n", key_be_high, key_be_low);
+            // vx_printf("key %d ", i);
+            // vx_printf(" 0x%016lx " "0x%016lx \n", key_be_high, key_be_low);
       }
 }
 
@@ -97,21 +99,21 @@ void Cipher(state_t aes_state, uint64_t round_keys[Nr+1][2]) {
     aes_state[0] ^= round_keys[0][0];
     aes_state[1] ^= round_keys[0][1];
 
-    print_aes_state(aes_state, 0);
+    // print_aes_state(aes_state, 0);
 
     //NR - 2 round
     for(int i = 0; i < (Nr - 1)/2; i++){
       aes_double_round(aes_state, i, round_keys);
-      print_aes_state(aes_state, 2 * (i + 1));  
+    //   print_aes_state(aes_state, 2 * (i + 1));  
     }
 
     // ROUND 9 
     aes_round(aes_state, 9, round_keys);
-    print_aes_state(aes_state, 9); 
+    // print_aes_state(aes_state, 9); 
 
     //Final round
     aes_final_round(aes_state, 10, round_keys);
-    print_aes_state(aes_state, 10);
+    //print_aes_state(aes_state, 10);
 }
 
 void inc32(uint8_t *block)
@@ -179,6 +181,9 @@ void print_block(const char *name, const uint8_t *b)
         vx_printf("%02x ", b[i]);
     vx_printf("\n");
 }
+inline void byterev(uint64_t& a, uint64_t& b) {
+    __asm__ volatile ("brev8 %0, %1" : "=r"(a) : "0"(b));
+}
 
 static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
 {
@@ -193,40 +198,41 @@ static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
     y0 = ((uint64_t*) y)[0];
     y1 = ((uint64_t*) y)[1];
 
-    __asm__ ("brev8 %0, %1" : "=r"(x0) : "r"(x0));
-    __asm__ ("brev8 %0, %1" : "=r"(x1) : "r"(x1));
-    __asm__ ("brev8 %0, %1" : "=r"(y0) : "r"(y0));
-    __asm__ ("brev8 %0, %1" : "=r"(y1) : "r"(y1));
+    
+    __asm__ ("brev8 %0, %1" : "=r"(x0) : "0"(x0));
+    __asm__ ("brev8 %0, %1" : "=r"(x1) : "0"(x1));
+    __asm__ ("brev8 %0, %1" : "=r"(y0) : "0"(y0));
+    __asm__ ("brev8 %0, %1" : "=r"(y1) : "0"(y1));
 
-    vx_printf("x: %016llx %016llx\n", x0, x1);
-    vx_printf("y: %016llx %016llx\n", y0, y1);
-    vx_printf("\n");
+    //vx_printf("x: %016llx %016llx\n", x0, x1);
+    //vx_printf("y: %016llx %016llx\n", y0, y1);
+    //vx_printf("\n");
 
     __asm__ (
         "clmulh %0, %2, %3\n\t"
         "clmul  %1, %2, %3\n\t"
-        : "=r"(z0h), "=r"(z0l)
+        : "=&r"(z0h), "=&r"(z0l)
         : "r"(x0), "r"(y0)
     );
 
     __asm__ (
         "clmulh %0, %2, %3\n\t"
         "clmul  %1, %2, %3\n\t"
-        : "=r"(z1h), "=r"(z1l)
+        : "=&r"(z1h), "=&r"(z1l)
         : "r"(x0), "r"(y1)
     );
 
     __asm__ (
         "clmulh %0, %2, %3\n\t"
         "clmul  %1, %2, %3\n\t"
-        : "=r"(z2h), "=r"(z2l)
+        : "=&r"(z2h), "=&r"(z2l)
         : "r"(x1), "r"(y0)
     );
 
-        __asm__ (
+    __asm__ (
         "clmulh %0, %2, %3\n\t"
         "clmul  %1, %2, %3\n\t"
-        : "=r"(z3h), "=r"(z3l)
+        : "=&r"(z3h), "=&r"(z3l)
         : "r"(x1), "r"(y1)
     );
     
@@ -256,12 +262,12 @@ static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
     r[0] = z0;
     r[1] = z1;
 
-    __asm__ ("brev8 %0, %1" : "=r"(r[0]) : "r"(r[0]));
-    __asm__ ("brev8 %0, %1" : "=r"(r[1]) : "r"(r[1]));
+    __asm__ volatile ("brev8 %0, %1" : "=r"(r[0]) : "0"(r[0]));
+    __asm__ volatile ("brev8 %0, %1" : "=r"(r[1]) : "0"(r[1]));
 
     memcpy(z, &r[0], 8);
     memcpy(z + 8, &r[1], 8);
-    print_block("z", z);
+    //print_block("z", z);
 }
 
 
