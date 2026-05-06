@@ -415,22 +415,12 @@ void aes_gcm_ghash(const uint8_t *H, const uint8_t *aad, size_t aad_len,
 }
 
 
-void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
-    uint64_t *pt            = (uint64_t*)arg->in_addr;
-    uint64_t *ct            = (uint64_t*)arg->out_addr;
-    uint64_t *counter       = (uint64_t*)arg->iv_addr;
-    uint8_t *tag            = (uint8_t*)arg->tag_addr;
-    uint8_t  *key_ptr       = (uint8_t *)arg->key_addr;
-    uint8_t  *aad_ptr       = (uint8_t*)arg->aad_addr;
-    int num_cores = 1;
-
-    size_t index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (index >= arg->grid_dim * arg->block_dim) return;
-
+void aes_ctr(uint64_t* in, uint64_t size_in, uint64_t* out, uint64_t* iv, uint64_t size_iv, size_t index) {
     state_t aes_state = {0x0, 0x0};
-
-    if(index == 0){
+ 
+    if(index == 0) {
+      memcpy(out, in, size_in);
+      
       // Calcola H = AES(0^128)
       uint8_t zero_block[AES_BLOCKLEN] = {0};
       Cipher((uint64_t*) zero_block, (void*) RK);
@@ -438,17 +428,33 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
       memcpy(H, zero_block, AES_BLOCKLEN);
 
       // Prepara J0
-      aes_gcm_prepare_j0((uint8_t*)counter, arg->size_iv, H, J0); // supponendo IV = 12 byte
+      aes_gcm_prepare_j0((uint8_t*)iv, size_iv, H, J0); // supponendo IV = 12 byte
     }
 
-      vx_barrier(0, num_cores);
+    vx_barrier(0, NUM_CORES);
 
-      AES_parallel((void*) RK, J0, (uint8_t*)pt, arg->size_in, index);
+    AES_parallel((void*) RK, J0, (uint8_t*)out, size_in, index);
 
-      vx_barrier(0, num_cores);
-      
-      memcpy(ct, pt, arg->size_in);
+    vx_barrier(0, NUM_CORES);
+}
 
+void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
+    uint64_t *pt            = (uint64_t*) arg->in_addr;
+    uint64_t *ct            = (uint64_t*) arg->out_addr;
+    uint64_t *iv            = (uint64_t*) arg->iv_addr;
+    uint8_t  *tag           = (uint8_t* ) arg->tag_addr;
+    uint8_t  *key_ptr       = (uint8_t* ) arg->key_addr;
+    uint8_t  *aad_ptr       = (uint8_t* ) arg->aad_addr;
+    int enc_dec = 1;
+
+    size_t index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index >= arg->grid_dim * arg->block_dim) return;
+    
+    if(enc_dec)
+      aes_ctr(pt, (uint64_t) arg->size_in , ct, iv, (uint64_t) arg->size_iv, index);
+    else
+      aes_ctr(ct, (uint64_t) arg->size_out, pt, iv, (uint64_t) arg->size_iv, index); 
+   
     if(index == 0){
             uint8_t S[AES_BLOCKLEN] = {0};
             aes_gcm_ghash(H, aad_ptr, arg->size_aad, (uint8_t*)ct, arg->size_in, S);

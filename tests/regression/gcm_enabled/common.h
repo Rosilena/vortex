@@ -31,6 +31,7 @@ typedef struct {
   uint32_t grid_dim;
   uint32_t block_dim;
   uint64_t size_in;
+  uint64_t size_out;
   uint64_t size_aad;
   uint64_t size_iv;
   uint64_t roundkeys;
@@ -40,6 +41,7 @@ typedef struct {
   uint64_t* aad_addr;
   uint64_t* out_addr;
   uint64_t* tag_addr;
+  uint8_t   enc_dec;
 } kernel_arg_t;
 
 static inline uint64_t AES_GET_BE64(const uint8_t a[], const size_t &offset)
