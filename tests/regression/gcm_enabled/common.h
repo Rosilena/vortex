@@ -4,12 +4,26 @@
 #include <VX_config.h>
 #include <stdint.h>
 
-#define Nk 4        // The number of 32 bit words in a key.
-#define Nr 10       // The number of rounds in AES Cipher.s
+//#define AES128 1
+//#define AES192 1
+#define AES256 1
 
-#define AES_KEYLEN 16
-#define MAX_THREADS 256
-#define AES_BLOCKLEN 16 
+#define AES_BLOCKLEN 16 // Block length in bytes - AES is 128b block only
+
+#if defined(AES256) && (AES256 == 1)
+    #define AES_KEYLEN 32
+    #define Nk 8
+    #define Nr 14
+#elif defined(AES192) && (AES192 == 1)
+    #define AES_KEYLEN 24
+    #define Nk 6
+    #define Nr 12
+#else
+    #define AES_KEYLEN 16   // Key length in bytes
+    #define Nk 4
+    #define Nr 10
+#endif
+
 
 typedef uint64_t state_t[2];
 
