@@ -6,8 +6,8 @@
 #include "aes-common.h"
 
 uint64_t RK[Nr+1][Nk / 2] = {0};
-uint8_t H[AES_BLOCKLEN] = {0};
-uint8_t J0[AES_BLOCKLEN];
+uint8_t H[AES_BLOCKLEN]   = {0};
+uint8_t J0[AES_BLOCKLEN]  = {0};
 
 void print_aes_state(state_t aes_state, const int &rnd) {
       vx_printf("RND %d State ", rnd);
@@ -417,25 +417,33 @@ void aes_gcm_ghash(const uint8_t *H, const uint8_t *aad, size_t aad_len,
 
 void aes_ctr(uint64_t* in, uint64_t size_in, uint64_t* out, uint64_t* iv, uint64_t size_iv, size_t index) {
     state_t aes_state = {0x0, 0x0};
- 
+
     if(index == 0) {
-      memcpy(out, in, size_in);
-      
+      memcpy((uint8_t*) out, (uint8_t*) in, size_in);
+
       // Calcola H = AES(0^128)
       uint8_t zero_block[AES_BLOCKLEN] = {0};
       Cipher((uint64_t*) zero_block, (void*) RK);
       
-      memcpy(H, zero_block, AES_BLOCKLEN);
+      memcpy((uint8_t*) H, (uint8_t*) zero_block, AES_BLOCKLEN);
 
       // Prepara J0
       aes_gcm_prepare_j0((uint8_t*)iv, size_iv, H, J0); // supponendo IV = 12 byte
+      //vx_barrier(0, NUM_CORES);
     }
+    
+    //vx_barrier(0, 1);
+    vx_barrier(0, 1);
+    vx_barrier(0, 1);
+    //vx_printf("%d \n", index);
 
-    vx_barrier(0, NUM_CORES);
+    //vx_barrier(0, 1);
+    //vx_barrier(0, 1);
 
     AES_parallel((void*) RK, J0, (uint8_t*)out, size_in, index);
 
-    vx_barrier(0, NUM_CORES);
+    //vx_fence();
+
 }
 
 void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
@@ -445,13 +453,12 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
     uint8_t  *tag           = (uint8_t* ) arg->tag_addr;
     uint8_t  *key_ptr       = (uint8_t* ) arg->key_addr;
     uint8_t  *aad_ptr       = (uint8_t* ) arg->aad_addr;
-    int enc_dec = 1;
 
     size_t index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index >= arg->grid_dim * arg->block_dim) return;
-    
-    if(enc_dec)
-      aes_ctr(pt, (uint64_t) arg->size_in , ct, iv, (uint64_t) arg->size_iv, index);
+
+    if((uint8_t) arg->enc_dec)
+      aes_ctr(pt, (uint64_t) arg->size_in, ct, iv, (uint64_t) arg->size_iv, index);
     else
       aes_ctr(ct, (uint64_t) arg->size_out, pt, iv, (uint64_t) arg->size_iv, index); 
    
@@ -470,8 +477,8 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
                   tag[i] ^= S[i];
             }
       }
-      else 
-            return;
+    
+    return;
 }
 
 

@@ -255,7 +255,7 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   std::vector<uint8_t> in  (in_u8, in_u8   + SIZE_IN ); 
   std::vector<uint8_t> iv  (iv_u8, iv_u8   + SIZE_IV );
   std::vector<uint8_t> aad (aad_u8, aad_u8 + SIZE_AAD);
-  std::vector<uint8_t> out (SIZE_OUT);
+  std::vector<uint8_t> out (out_u8, out_u8 + SIZE_OUT);
   std::vector<uint8_t> tag (SIZE_TAG);
   
   // Upload kernel binary
@@ -266,9 +266,15 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   std::cout << "upload kernel argument" << std::endl;
   RT_CHECK(vx_upload_bytes(device, &kernel_arg, sizeof(kernel_arg_t), &args_buffer));
 
-  // upload source in_buffer
-  std::cout << "upload source in_buffer" << std::endl;
-  RT_CHECK(vx_copy_to_dev(in_buffer, in.data(), 0,  SIZE_IN));
+  if (kernel_arg.enc_dec) {
+    // Encrypt, upload plaintext in_buffer
+    std::cout << "upload source in_buffer" << std::endl;
+    RT_CHECK(vx_copy_to_dev(in_buffer, in.data(), 0,  SIZE_IN));
+  } else {
+    // Decrypt, upload cyphertext in_buffer
+    std::cout << "upload source in_buffer" << std::endl;
+    RT_CHECK(vx_copy_to_dev(out_buffer, out.data(), 0,  SIZE_OUT));
+  }
 
   // upload source iv_buffer
   std::cout << "upload source iv_buffer" << std::endl;
@@ -303,7 +309,11 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   // download destination buffer
   std::cout << "read destination buffer from local memory" << std::endl;
   auto t4 = std::chrono::high_resolution_clock::now();
-  RT_CHECK(vx_copy_from_dev(out.data(), out_buffer, 0,  SIZE_OUT));
+  if (kernel_arg.enc_dec) {
+    RT_CHECK(vx_copy_from_dev(out.data(), out_buffer, 0,  SIZE_OUT));
+  } else {
+    RT_CHECK(vx_copy_from_dev(in.data(), in_buffer, 0,  SIZE_IN));
+  }
   RT_CHECK(vx_copy_from_dev(tag.data(), tag_buffer, 0,  SIZE_TAG));
   auto t5 = std::chrono::high_resolution_clock::now();
 
@@ -331,12 +341,22 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
       errors = 1;
   }
 
-  if (0 == memcmp((char *) out.data(), (char *) out_u8, SIZE_OUT)) {
-      printf("SUCCESS CRYPTO!\n");
-      errors = 0;
+  if (kernel_arg.enc_dec) {
+    if (0 == memcmp((char *) out.data(), (char *) out_u8, SIZE_OUT)) {
+        printf("SUCCESS ENCRYPT!\n");
+        errors = 0;
+    } else {
+        printf("FAILURE ENCRYPT!\n");
+        errors = 1;
+    }
   } else {
-      printf("FAILURE CRYPTO!\n");
-      errors = 1;
+    if (0 == memcmp((char *) in.data(), (char *) in_u8, SIZE_IN)) {
+        printf("SUCCESS DECRYPT!\n");
+        errors = 0;
+    } else {
+        printf("FAILURE DECRYPT!\n");
+        errors = 1;
+    }
   }
 
   auto time_end = std::chrono::high_resolution_clock::now();
@@ -363,7 +383,7 @@ int main(int argc, char *argv[]) {
   kernel_arg.block_dim = SIZE_IN / AES_BLOCKLEN;
   kernel_arg.roundkeys = Nr;
   kernel_arg.grid_dim  = 1;
-  kernel_arg.enc_dec   = 1;
+  kernel_arg.enc_dec   = 0;
   kernel_arg.size_in   = SIZE_IN;
   kernel_arg.size_out  = SIZE_OUT;
   kernel_arg.size_iv   = SIZE_IV;
