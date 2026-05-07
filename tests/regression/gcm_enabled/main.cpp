@@ -35,8 +35,8 @@ kernel_arg_t kernel_arg = {};
 
 #if defined(AES256) && (AES256 == 1)
 
-#define LEN_IN 32
-#define LEN_OUT 32
+#define LEN_IN 51
+#define LEN_OUT 51
 #define LEN_AAD 90
 #define LEN_IV 12
 #define LEN_TAG 16
@@ -380,15 +380,16 @@ int main(int argc, char *argv[]) {
     count = 1;
   }
   
-  kernel_arg.block_dim = SIZE_IN / AES_BLOCKLEN;
+  kernel_arg.block_dim = NUM_WARPS * NUM_THREADS;
   kernel_arg.roundkeys = Nr;
-  kernel_arg.grid_dim  = 1;
+  kernel_arg.grid_dim  = NUM_CORES;
   kernel_arg.enc_dec   = ENC_OR_DEC;
   kernel_arg.size_in   = SIZE_IN;
   kernel_arg.size_out  = SIZE_OUT;
   kernel_arg.size_iv   = SIZE_IV;
   kernel_arg.size_aad  = SIZE_AAD;
-
+  
+  std::cout << "Num Cores " << NUM_CORES << "Num Warps " << NUM_WARPS << " NUM THREADS " << NUM_THREADS << std::endl;
   // open device connection
   std::cout << "open device connection" << std::endl;
   RT_CHECK(vx_dev_open(&device));

@@ -189,8 +189,11 @@ void inc32(uint8_t *block, uint32_t amnt)
  	AES_PUT_BE32(block + AES_BLOCKLEN - 4, val);
 }
 
-void AES_parallel(void* rk_pointer, uint8_t* J0, uint8_t* buf, size_t length, size_t threadIdx)
+void AES_parallel(void* rk_pointer, uint8_t* J0, uint8_t* buf, size_t length, size_t threadIdx, size_t workgroup_size)
 {
+    if (threadIdx >= length / 8)
+      return;
+
     uint8_t ctr[AES_BLOCKLEN];
 
     memcpy(ctr, J0, AES_BLOCKLEN);
@@ -456,7 +459,7 @@ void aes_gcm_ghash(const uint8_t *H, const uint8_t *aad, size_t aad_len,
 }
 
 
-void aes_ctr(uint64_t* in, uint64_t size_in, uint64_t* out, uint64_t* iv, uint64_t size_iv, size_t index) {
+void aes_ctr(uint64_t* in, uint64_t size_in, uint64_t* out, uint64_t* iv, uint64_t size_iv, size_t index, size_t workgroup_size) {
     state_t aes_state = {0x0, 0x0};
 
     if(index == 0) {
@@ -472,16 +475,20 @@ void aes_ctr(uint64_t* in, uint64_t size_in, uint64_t* out, uint64_t* iv, uint64
       aes_gcm_prepare_j0((uint8_t*)iv, size_iv, H, J0, index); // supponendo IV = 12 byte
       //vx_barrier(0, NUM_CORES);
     }
-    
+
+    //vx_printf("I'm going here ! \n");
+
     //vx_barrier(0, 1);
-    vx_barrier(0, 1);
-    vx_barrier(0, 1);
+    vx_barrier(0, vx_num_warps());
+    vx_barrier(0, vx_num_warps());
     //vx_printf("%d \n", index);
 
     //vx_barrier(0, 1);
     //vx_barrier(0, 1);
 
-    AES_parallel((void*) RK, J0, (uint8_t*)out, size_in, index);
+    AES_parallel((void*) RK, J0, (uint8_t*)out, size_in, index, workgroup_size);
+
+    vx_barrier(0, vx_num_warps());
 
     //vx_fence();
 
@@ -495,22 +502,29 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
     uint8_t  *key_ptr       = (uint8_t* ) arg->key_addr;
     uint8_t  *aad_ptr       = (uint8_t* ) arg->aad_addr;
     uint8_t S[AES_BLOCKLEN] = {0};
-	uint8_t len_buf[16]     = {0};
+	  uint8_t len_buf[16]     = {0};
     size_t index            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t workgroup_size   = arg->grid_dim * arg->block_dim;
     
-    if (index >= workgroup_size) return;
+    //if (index >= workgroup_size) return;
+    
+    vx_printf("Hello! I'm thread id = %d warp id = %d core id = %d index = %d\n",\
+        vx_thread_id(), \
+        vx_warp_id(),   \
+        vx_core_id(),   \
+        index);
+
 
     if((uint8_t) arg->enc_dec)
-      aes_ctr(pt, (uint64_t) arg->size_in, ct, iv, (uint64_t) arg->size_iv, index);
+      aes_ctr(pt, (uint64_t) arg->size_in, ct, iv, (uint64_t) arg->size_iv, index, workgroup_size);
     else
-      aes_ctr(ct, (uint64_t) arg->size_out, pt, iv, (uint64_t) arg->size_iv, index); 
+      aes_ctr(ct, (uint64_t) arg->size_out, pt, iv, (uint64_t) arg->size_iv, index, workgroup_size); 
    
     if(index == 0){
         //aes_gcm_ghash(H, aad_ptr, arg->size_aad, (uint8_t*)ct, arg->size_in, S, index);
 
-        ghash(H, (uint8_t*)aad_ptr, arg->size_aad, S, index, workgroup_size);
-        ghash(H, (uint8_t*)ct     , arg->size_out, S, index, workgroup_size);
+        ghash(H, (uint8_t*)aad_ptr, arg->size_aad, S, index);
+        ghash(H, (uint8_t*)ct     , arg->size_out, S, index);
 
         AES_PUT_BE64(len_buf, arg->size_aad * 8);
         AES_PUT_BE64(len_buf + 8, arg->size_out * 8);
