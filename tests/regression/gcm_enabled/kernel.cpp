@@ -341,19 +341,18 @@ static void ghash_start(uint8_t *y)
 	memset(y, 0, 16);
 }
 
+/* Evaluate polynomial x0 + x1 * h + x2 * h^2 + ... + xn * h^n */
+/*
+    x -> array of 128 bit elements [xn, xn-1, xn-2, ... x1, x0]
+    h -> 128bit
+    y -> 128bit
+*/
+static void horner(const uint8_t* x, const uint8_t* h, const uint64_t n, uint8_t* y, bool const_term) {
+    uint8_t tmp[16];
 
-static void ghash(const uint8_t *h, const uint8_t *x, size_t xlen, uint8_t *y)
-{
-	size_t m, i;
-	const uint8_t *xpos = x;
-	uint8_t tmp[16];
-
-	m = xlen / 16;
-
-	for (i = 0; i < m; i++) {
+	for (int i = 0; i < n; i++) {
 		/* Y_i = (Y^(i-1) XOR X_i) dot H */
-		xor_block(y, xpos);
-		xpos += 16;
+		xor_block(y, x + 16 * i);
 
 		/* dot operation:
 		 * multiplication operation for binary Galois (finite) field of
@@ -362,12 +361,42 @@ static void ghash(const uint8_t *h, const uint8_t *x, size_t xlen, uint8_t *y)
 		memcpy(y, tmp, 16);
 	}
 
+    if (const_term) {
+        xor_block(y, x + 16 * n);
+    }
+}
+
+static void ghash(const uint8_t *h, const uint8_t *x, size_t xlen, uint8_t *y, size_t index)
+{
+	size_t m, i;
+	const uint8_t *xpos = x;
+	uint8_t tmp[16];
+
+	m = xlen / 16;
+
+	// for (i = 0; i < m; i++) {
+	// 	/* Y_i = (Y^(i-1) XOR X_i) dot H */
+	// 	xor_block(y, xpos);
+	// 	xpos += 16;
+
+	// 	/* dot operation:
+	// 	 * multiplication operation for binary Galois (finite) field of
+	// 	 * 2^128 elements */
+	// 	gf_mult(y, h, tmp);
+	// 	memcpy(y, tmp, 16);
+	// }
+
+    horner(xpos, h, m, y, 0);
+    xpos = xpos +  m * 16;
+    
 	if (x + xlen > xpos) {
 		/* Add zero padded last block */
 		size_t last = x + xlen - xpos;
+
+        vx_printf("last = %d \n", last);
+
 		memcpy(tmp, xpos, last);
 		memset(tmp + last, 0, sizeof(tmp) - last);
-
 		/* Y_i = (Y^(i-1) XOR X_i) dot H */
 		xor_block(y, tmp);
 
@@ -377,10 +406,11 @@ static void ghash(const uint8_t *h, const uint8_t *x, size_t xlen, uint8_t *y)
 		gf_mult(y, h, tmp);
 		memcpy(y, tmp, 16);
 	}
+    vx_printf("OK\n");
 	/* Return Y_m */
 }
 
-void aes_gcm_prepare_j0(const uint8_t *iv, size_t iv_len, const uint8_t *H, uint8_t *J0)
+void aes_gcm_prepare_j0(const uint8_t *iv, size_t iv_len, const uint8_t *H, uint8_t *J0, size_t index)
 {
 	uint8_t len_buf[16];
 
@@ -389,21 +419,23 @@ void aes_gcm_prepare_j0(const uint8_t *iv, size_t iv_len, const uint8_t *H, uint
 		memcpy(J0, iv, iv_len);
 		memset(J0 + iv_len, 0, AES_BLOCKLEN - iv_len);
 		J0[AES_BLOCKLEN - 1] = 0x01;
-	} else {
-		/*
-		 * s = 128 * ceil(len(IV)/128) - len(IV)
-		 * J_0 = GHASH_H(IV || 0^(s+64) || [len(IV)]_64)
-		 */
-		ghash_start(J0);
-		ghash(H, iv, iv_len, J0);
-		AES_PUT_BE64(len_buf, 0);
-		AES_PUT_BE64(len_buf + 8, iv_len * 8);
-		ghash(H, len_buf, sizeof(len_buf), J0);
-	}
+	} 
+    // ELSE CASE IGNORED FOR SIMPLICITY (IV LEN ALWAYS 12)
+    // else {
+	// 	/*
+	// 	 * s = 128 * ceil(len(IV)/128) - len(IV)
+	// 	 * J_0 = GHASH_H(IV || 0^(s+64) || [len(IV)]_64)
+	// 	 */
+	// 	ghash_start(J0);
+	// 	ghash(H, iv, iv_len, J0, index);
+	// 	AES_PUT_BE64(len_buf, 0);
+	// 	AES_PUT_BE64(len_buf + 8, iv_len * 8);
+	// 	ghash(H, len_buf, sizeof(len_buf), J0, index);
+	// }
 }
 
 void aes_gcm_ghash(const uint8_t *H, const uint8_t *aad, size_t aad_len,
-			  const uint8_t *crypt, size_t crypt_len, uint8_t *S)
+			  const uint8_t *crypt, size_t crypt_len, uint8_t *S, size_t index)
 {
 	uint8_t len_buf[16];
 
@@ -413,12 +445,14 @@ void aes_gcm_ghash(const uint8_t *H, const uint8_t *aad, size_t aad_len,
 	 * S = GHASH_H(A || 0^v || C || 0^u || [len(A)]64 || [len(C)]64)
 	 * (i.e., zero padded to block size A || C and lengths of each in bits)
 	 */
-	ghash_start(S);
-	ghash(H, aad, aad_len, S);
-	ghash(H, crypt, crypt_len, S);
-	AES_PUT_BE64(len_buf, aad_len * 8);
-	AES_PUT_BE64(len_buf + 8, crypt_len * 8);
-	ghash(H, len_buf, sizeof(len_buf), S);
+
+    /* Parallelize these two */
+	// ghash(H, aad, aad_len, S, index);
+	// ghash(H, crypt, crypt_len, S, index);
+
+	// AES_PUT_BE64(len_buf, aad_len * 8);
+	// AES_PUT_BE64(len_buf + 8, crypt_len * 8);
+	// ghash(H, len_buf, sizeof(len_buf), S, index);
 }
 
 
@@ -435,7 +469,7 @@ void aes_ctr(uint64_t* in, uint64_t size_in, uint64_t* out, uint64_t* iv, uint64
       memcpy((uint8_t*) H, (uint8_t*) zero_block, AES_BLOCKLEN);
 
       // Prepara J0
-      aes_gcm_prepare_j0((uint8_t*)iv, size_iv, H, J0); // supponendo IV = 12 byte
+      aes_gcm_prepare_j0((uint8_t*)iv, size_iv, H, J0, index); // supponendo IV = 12 byte
       //vx_barrier(0, NUM_CORES);
     }
     
@@ -460,8 +494,10 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
     uint8_t  *tag           = (uint8_t* ) arg->tag_addr;
     uint8_t  *key_ptr       = (uint8_t* ) arg->key_addr;
     uint8_t  *aad_ptr       = (uint8_t* ) arg->aad_addr;
-
+    uint8_t S[AES_BLOCKLEN] = {0};
+	uint8_t len_buf[16];
     size_t index = blockIdx.x * blockDim.x + threadIdx.x;
+    
     if (index >= arg->grid_dim * arg->block_dim) return;
 
     if((uint8_t) arg->enc_dec)
@@ -470,19 +506,25 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
       aes_ctr(ct, (uint64_t) arg->size_out, pt, iv, (uint64_t) arg->size_iv, index); 
    
     if(index == 0){
-            uint8_t S[AES_BLOCKLEN] = {0};
-            aes_gcm_ghash(H, aad_ptr, arg->size_aad, (uint8_t*)ct, arg->size_in, S);
+        //aes_gcm_ghash(H, aad_ptr, arg->size_aad, (uint8_t*)ct, arg->size_in, S, index);
 
-            //uint8_t tag[AES_KEYLEN];
-            memcpy(tag, J0, AES_BLOCKLEN);
+        ghash(H, (uint8_t*)aad_ptr, arg->size_aad, S, index);
+        ghash(H, (uint8_t*)ct     , arg->size_out, S, index);
 
-            // tag = AES(J0)
-            Cipher((uint64_t*)tag, (void*) RK);
+        AES_PUT_BE64(len_buf, arg->size_aad * 8);
+        AES_PUT_BE64(len_buf + 8, arg->size_out * 8);
+        ghash(H, len_buf, sizeof(len_buf), S, index);
 
-            // tag = tag XOR S
-            for(int i = 0; i < AES_BLOCKLEN; i++) {
-                  tag[i] ^= S[i];
-            }
+        //uint8_t tag[AES_KEYLEN];
+        memcpy(tag, J0, AES_BLOCKLEN);
+
+        // tag = AES(J0)
+        Cipher((uint64_t*)tag, (void*) RK);
+
+        // tag = tag XOR S
+        for(int i = 0; i < AES_BLOCKLEN; i++) {
+                tag[i] ^= S[i];
+        }
       }
     
     return;

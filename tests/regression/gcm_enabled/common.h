@@ -4,9 +4,10 @@
 #include <VX_config.h>
 #include <stdint.h>
 
-//#define AES128 1
+#define AES128 1
 //#define AES192 1
-#define AES256 1
+//#define AES256 1
+#define ENC_OR_DEC 1
 
 #define AES_BLOCKLEN 16 // Block length in bytes - AES is 128b block only
 
