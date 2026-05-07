@@ -383,7 +383,7 @@ int main(int argc, char *argv[]) {
   kernel_arg.block_dim = SIZE_IN / AES_BLOCKLEN;
   kernel_arg.roundkeys = Nr;
   kernel_arg.grid_dim  = 1;
-  kernel_arg.enc_dec   = 0;
+  kernel_arg.enc_dec   = 1;
   kernel_arg.size_in   = SIZE_IN;
   kernel_arg.size_out  = SIZE_OUT;
   kernel_arg.size_iv   = SIZE_IV;

@@ -181,14 +181,21 @@ void inc32(uint8_t *block)
  	AES_PUT_BE32(block + AES_BLOCKLEN - 4, val);
 }
 
+void inc32(uint8_t *block, uint32_t amnt)
+{
+ 	aes_uint val;
+ 	val = AES_GET_BE32(block + AES_BLOCKLEN - 4);
+ 	val += amnt;
+ 	AES_PUT_BE32(block + AES_BLOCKLEN - 4, val);
+}
+
 void AES_parallel(void* rk_pointer, uint8_t* J0, uint8_t* buf, size_t length, size_t threadIdx)
 {
     uint8_t ctr[AES_BLOCKLEN];
 
     memcpy(ctr, J0, AES_BLOCKLEN);
 
-    for(int i=0;i<=threadIdx;i++)
-        inc32(ctr);
+    inc32(ctr, threadIdx + 1);
 
     Cipher((uint64_t*)ctr, rk_pointer);
 

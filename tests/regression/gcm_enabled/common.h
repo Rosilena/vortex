@@ -57,4 +57,49 @@ static inline uint64_t AES_GET_BE64(const uint8_t a[], const size_t &offset)
     (((uint64_t) a[7 + offset]));
 }
 
+static inline void AES_PUT_BE64(uint8_t *a, uint64_t val)
+{
+	// a[0] = val >> 56;
+	// a[1] = val >> 48;
+	// a[2] = val >> 40;
+	// a[3] = val >> 32;
+	// a[4] = val >> 24;
+	// a[5] = val >> 16;
+	// a[6] = val >> 8;
+	// a[7] = val & 0xff;
+
+  __asm__ (
+        "rev8 %0, %1"
+        : "=r"(*((uint64_t*) a))
+        : "r"(val)
+  );
+}
+
+static inline uint32_t AES_GET_BE32(const uint8_t *a)
+{
+  uint32_t val = 0;
+  uint32_t tmp = *((uint32_t*) a);
+
+  __asm__ (
+        "rev8 t0, %1 \n\t"
+        "srai %0, t0, 32"
+        : "=r"(val)
+        : "r"(tmp)
+        : "t0"
+  );
+
+	return val;
+}
+
+static inline void AES_PUT_BE32(uint8_t *a, uint32_t val)
+{
+  __asm__ (
+        "rev8 t0, %1 \n\t"
+        "srai %0, t0, 32"
+        : "=r"(*((uint32_t*) a))
+        : "r"(val)
+        : "t0"
+  );
+}
+
 #endif
