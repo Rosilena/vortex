@@ -435,7 +435,7 @@ void aes_gcm_prepare_j0(const uint8_t *iv, size_t iv_len, const uint8_t *H, uint
 }
 
 void aes_gcm_ghash(const uint8_t *H, const uint8_t *aad, size_t aad_len,
-			  const uint8_t *crypt, size_t crypt_len, uint8_t *S, size_t index)
+			  const uint8_t *crypt, size_t crypt_len, uint8_t *S, size_t index, size_t workgroup_size)
 {
 	uint8_t len_buf[16];
 
@@ -495,10 +495,11 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
     uint8_t  *key_ptr       = (uint8_t* ) arg->key_addr;
     uint8_t  *aad_ptr       = (uint8_t* ) arg->aad_addr;
     uint8_t S[AES_BLOCKLEN] = {0};
-	uint8_t len_buf[16];
-    size_t index = blockIdx.x * blockDim.x + threadIdx.x;
+	uint8_t len_buf[16]     = {0};
+    size_t index            = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t workgroup_size   = arg->grid_dim * arg->block_dim;
     
-    if (index >= arg->grid_dim * arg->block_dim) return;
+    if (index >= workgroup_size) return;
 
     if((uint8_t) arg->enc_dec)
       aes_ctr(pt, (uint64_t) arg->size_in, ct, iv, (uint64_t) arg->size_iv, index);
@@ -508,8 +509,8 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
     if(index == 0){
         //aes_gcm_ghash(H, aad_ptr, arg->size_aad, (uint8_t*)ct, arg->size_in, S, index);
 
-        ghash(H, (uint8_t*)aad_ptr, arg->size_aad, S, index);
-        ghash(H, (uint8_t*)ct     , arg->size_out, S, index);
+        ghash(H, (uint8_t*)aad_ptr, arg->size_aad, S, index, workgroup_size);
+        ghash(H, (uint8_t*)ct     , arg->size_out, S, index, workgroup_size);
 
         AES_PUT_BE64(len_buf, arg->size_aad * 8);
         AES_PUT_BE64(len_buf + 8, arg->size_out * 8);
