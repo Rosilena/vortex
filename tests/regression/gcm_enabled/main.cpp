@@ -380,9 +380,9 @@ int main(int argc, char *argv[]) {
     count = 1;
   }
   
-  kernel_arg.block_dim = 1;
+  kernel_arg.block_dim = 16;
   kernel_arg.roundkeys = Nr;
-  kernel_arg.grid_dim  = 2;
+  kernel_arg.grid_dim  = 1;
   kernel_arg.enc_dec   = ENC_OR_DEC;
   kernel_arg.size_in   = SIZE_IN;
   kernel_arg.size_out  = SIZE_OUT;

@@ -45,18 +45,6 @@ typedef struct {
   uint8_t   enc_dec;
 } kernel_arg_t;
 
-static inline uint64_t AES_GET_BE64(const uint8_t a[], const size_t &offset)
-{
-	return                        \
-    (((uint64_t) a[0 + offset]) << 56) | \
-    (((uint64_t) a[1 + offset]) << 48) | \
-    (((uint64_t) a[2 + offset]) << 40) | \
-    (((uint64_t) a[3 + offset]) << 32) | \
-    (((uint64_t) a[4 + offset]) << 24) | \
-    (((uint64_t) a[5 + offset]) << 16) | \
-    (((uint64_t) a[6 + offset]) <<  8) | \
-    (((uint64_t) a[7 + offset]));
-}
 
 static inline void AES_PUT_BE64(uint8_t *a, uint64_t val)
 {
@@ -101,6 +89,39 @@ static inline void AES_PUT_BE32(uint8_t *a, uint32_t val)
         : "r"(val)
         : "t0"
   );
+}
+
+
+static void xor_block(uint8_t *dst, const uint8_t *src)
+{
+    for(int i = 0; i < AES_BLOCKLEN; i++) dst[i] ^= src[i];
+}
+
+static void shift_right_block(uint8_t *v)
+{
+	uint32_t val;
+
+	val = AES_GET_BE32(v + 12);
+	val >>= 1;
+	if (v[11] & 0x01)
+		val |= 0x80000000;
+	AES_PUT_BE32(v + 12, val);
+
+	val = AES_GET_BE32(v + 8);
+	val >>= 1;
+	if (v[7] & 0x01)
+		val |= 0x80000000;
+	AES_PUT_BE32(v + 8, val);
+
+	val = AES_GET_BE32(v + 4);
+	val >>= 1;
+	if (v[3] & 0x01)
+		val |= 0x80000000;
+	AES_PUT_BE32(v + 4, val);
+
+	val = AES_GET_BE32(v);
+	val >>= 1;
+	AES_PUT_BE32(v, val);
 }
 
 #endif

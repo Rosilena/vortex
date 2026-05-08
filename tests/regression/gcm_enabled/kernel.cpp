@@ -20,6 +20,15 @@ void print_aes_state(state_t aes_state, const int &rnd) {
       }
       vx_printf("\n");
 }
+
+void print_block(const char *name, const uint8_t *b)
+{
+    vx_printf("%s: ", name);
+    for (int i = 0; i < 16; i++)
+        vx_printf("%02x ", b[i]);
+    vx_printf("\n");
+}
+
 #define AES_KEYROUND_256_0(RND) \
       __asm__ (                                                                 \
             "aes64ks1i t0, %5," #RND "\n\t"                                     \
@@ -194,63 +203,21 @@ void AES_parallel(void* rk_pointer, uint8_t* J0, uint8_t* buf, size_t length, si
     uint8_t ctr[AES_BLOCKLEN];
 
     for (int i = 0; workgroup_size * i + threadIdx < length / AES_BLOCKLEN; i += workgroup_size) {
-        vx_printf("Encrypting block %d\n", workgroup_size * i + threadIdx);
+        int j = workgroup_size * i + threadIdx;
+
+        vx_printf("Encrypting block %d\n", j);
+        
         memcpy(ctr, J0, AES_BLOCKLEN);
 
-        inc32(ctr, i * workgroup_size + threadIdx + 1);
+        inc32(ctr, j + 1);
 
         Cipher((uint64_t*)ctr, rk_pointer);
 
-        for (int j = 0; j < AES_BLOCKLEN; j++)
-            buf[j + (workgroup_size * i + threadIdx) * AES_BLOCKLEN] ^=
-                ctr[j];
+        xor_block(&(buf[j * AES_BLOCKLEN]), ctr);
     }
 }
 
 ////////////////////////////////////GCM////////////////////////////////////////////////////
-
-static void xor_block(uint8_t *dst, const uint8_t *src)
-{
-    for(int i = 0; i < 16; i++) dst[i] ^= src[i];
-}
-
-static void shift_right_block(uint8_t *v)
-{
-	aes_uint val;
-
-	val = AES_GET_BE32(v + 12);
-	val >>= 1;
-	if (v[11] & 0x01)
-		val |= 0x80000000;
-	AES_PUT_BE32(v + 12, val);
-
-	val = AES_GET_BE32(v + 8);
-	val >>= 1;
-	if (v[7] & 0x01)
-		val |= 0x80000000;
-	AES_PUT_BE32(v + 8, val);
-
-	val = AES_GET_BE32(v + 4);
-	val >>= 1;
-	if (v[3] & 0x01)
-		val |= 0x80000000;
-	AES_PUT_BE32(v + 4, val);
-
-	val = AES_GET_BE32(v);
-	val >>= 1;
-	AES_PUT_BE32(v, val);
-}
-
-void print_block(const char *name, const uint8_t *b)
-{
-    vx_printf("%s: ", name);
-    for (int i = 0; i < 16; i++)
-        vx_printf("%02x ", b[i]);
-    vx_printf("\n");
-}
-inline void byterev(uint64_t& a, uint64_t& b) {
-    __asm__ volatile ("brev8 %0, %1" : "=r"(a) : "0"(b));
-}
 
 static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
 {
