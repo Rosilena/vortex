@@ -20,6 +20,15 @@ void print_aes_state(state_t aes_state, const int &rnd) {
       }
       vx_printf("\n");
 }
+
+void print_block(const char *name, const uint8_t *b)
+{
+    vx_printf("%s: ", name);
+    for (int i = 0; i < 16; i++)
+        vx_printf("%02x ", b[i]);
+    vx_printf("\n");
+}
+
 #define AES_KEYROUND_256_0(RND) \
       __asm__ (                                                                 \
             "aes64ks1i t0, %5," #RND "\n\t"                                     \
@@ -196,61 +205,22 @@ void AES_parallel(void* rk_pointer, uint8_t* J0, uint8_t* buf, size_t length, si
 
     uint8_t ctr[AES_BLOCKLEN];
 
-    memcpy(ctr, J0, AES_BLOCKLEN);
+    for (int i = 0; workgroup_size * i + threadIdx < length / AES_BLOCKLEN; i += workgroup_size) {
+        int j = workgroup_size * i + threadIdx;
 
-    inc32(ctr, threadIdx + 1);
+        vx_printf("Encrypting block %d\n", j);
+        
+        memcpy(ctr, J0, AES_BLOCKLEN);
 
-    Cipher((uint64_t*)ctr, rk_pointer);
+        inc32(ctr, j + 1);
 
-    for (int j = 0; j < AES_BLOCKLEN; j++)
-        buf[j + threadIdx * AES_BLOCKLEN] ^=
-            ctr[j];
+        Cipher((uint64_t*)ctr, rk_pointer);
+
+        xor_block(&(buf[j * AES_BLOCKLEN]), ctr);
+    }
 }
 
 ////////////////////////////////////GCM////////////////////////////////////////////////////
-
-static void xor_block(uint8_t *dst, const uint8_t *src)
-{
-    for(int i = 0; i < 16; i++) dst[i] ^= src[i];
-}
-
-static void shift_right_block(uint8_t *v)
-{
-	aes_uint val;
-
-	val = AES_GET_BE32(v + 12);
-	val >>= 1;
-	if (v[11] & 0x01)
-		val |= 0x80000000;
-	AES_PUT_BE32(v + 12, val);
-
-	val = AES_GET_BE32(v + 8);
-	val >>= 1;
-	if (v[7] & 0x01)
-		val |= 0x80000000;
-	AES_PUT_BE32(v + 8, val);
-
-	val = AES_GET_BE32(v + 4);
-	val >>= 1;
-	if (v[3] & 0x01)
-		val |= 0x80000000;
-	AES_PUT_BE32(v + 4, val);
-
-	val = AES_GET_BE32(v);
-	val >>= 1;
-	AES_PUT_BE32(v, val);
-}
-
-void print_block(const char *name, const uint8_t *b)
-{
-    vx_printf("%s: ", name);
-    for (int i = 0; i < 16; i++)
-        vx_printf("%02x ", b[i]);
-    vx_printf("\n");
-}
-inline void byterev(uint64_t& a, uint64_t& b) {
-    __asm__ volatile ("brev8 %0, %1" : "=r"(a) : "0"(b));
-}
 
 static void gf_mult(const uint8_t *x, const uint8_t *y, uint8_t *z)
 {
@@ -350,12 +320,13 @@ static void ghash_start(uint8_t *y)
     h -> 128bit
     y -> 128bit
 */
-static void horner(const uint8_t* x, const uint8_t* h, const uint64_t n, uint8_t* y, bool const_term) {
+static void horner(const uint8_t* x, const uint8_t* h, const uint64_t n, uint8_t* y, bool const_term, size_t stride) {
     uint8_t tmp[16];
 
 	for (int i = 0; i < n; i++) {
 		/* Y_i = (Y^(i-1) XOR X_i) dot H */
-		xor_block(y, x + 16 * i);
+		xor_block(y, x + 16 * i * stride);
+        vx_printf("Working on %x \n", x + 16 * i * stride);
 
 		/* dot operation:
 		 * multiplication operation for binary Galois (finite) field of
@@ -365,11 +336,11 @@ static void horner(const uint8_t* x, const uint8_t* h, const uint64_t n, uint8_t
 	}
 
     if (const_term) {
-        xor_block(y, x + 16 * n);
+        xor_block(y, x + 16 * n * stride);
     }
 }
 
-static void ghash(const uint8_t *h, const uint8_t *x, size_t xlen, uint8_t *y, size_t index)
+static void ghash(const uint8_t *h, uint8_t *x, size_t xlen, uint8_t *y, size_t index, size_t workgroup_size)
 {
 	size_t m, i;
 	const uint8_t *xpos = x;
@@ -377,40 +348,74 @@ static void ghash(const uint8_t *h, const uint8_t *x, size_t xlen, uint8_t *y, s
 
 	m = xlen / 16;
 
-	// for (i = 0; i < m; i++) {
-	// 	/* Y_i = (Y^(i-1) XOR X_i) dot H */
-	// 	xor_block(y, xpos);
-	// 	xpos += 16;
+    if (workgroup_size > m / 2 || workgroup_size == 1) {
+        vx_printf("Single threaded execution m=%d; workgroup_size=%d\n", m, workgroup_size);
+        //Single threaded execution
+        if (index == 0) {
+            horner(xpos, h, m, y, 0, 1);
+        }
+        //vx_barrier(0, vx_num_warps());
+        vx_printf("OK\n");
+    } else {
+        uint8_t H_pow[AES_BLOCKLEN] = {0};
 
-	// 	/* dot operation:
-	// 	 * multiplication operation for binary Galois (finite) field of
-	// 	 * 2^128 elements */
-	// 	gf_mult(y, h, tmp);
-	// 	memcpy(y, tmp, 16);
-	// }
+        vx_printf("Multi threaded execution m=%d; workgroup_size=%d\n", m, workgroup_size);
 
-    horner(xpos, h, m, y, 0);
-    xpos = xpos +  m * 16;
-    
-	if (x + xlen > xpos) {
-		/* Add zero padded last block */
-		size_t last = x + xlen - xpos;
+        if (index == 0) {
+            // Calculating powers of H
+            memcpy(H_pow, h, 16);
 
-        vx_printf("last = %d \n", last);
+            for (int i = 0; i < workgroup_size - 1; i++) {
+                gf_mult(H_pow, h, tmp);
+                memcpy(H_pow, tmp, 16);
+            }
+        }
+        
+        memset(tmp, 0, AES_BLOCKLEN);
+        horner(x + index * AES_BLOCKLEN, H_pow, m / workgroup_size, tmp, 0, workgroup_size);
+        vx_printf("Horner index = %d\n", index);
+        
+        //vx_barrier(0, vx_num_warps());
+        memcpy((uint8_t*) (x + index * AES_BLOCKLEN), tmp, 16);
+        //vx_barrier(0, vx_num_warps());
 
-		memcpy(tmp, xpos, last);
-		memset(tmp + last, 0, sizeof(tmp) - last);
-		/* Y_i = (Y^(i-1) XOR X_i) dot H */
-		xor_block(y, tmp);
+        if (index == 0) {
+            //vx_printf("Copying 0x%x in 0x%x\n", x + workgroup_size * AES_BLOCKLEN, x + (m - m % workgroup_size ) * AES_BLOCKLEN);
+            
+            memset(tmp, 0, AES_BLOCKLEN);
 
-		/* dot operation:
-		 * multiplication operation for binary Galois (finite) field of
-		 * 2^128 elements */
-		gf_mult(y, h, tmp);
-		memcpy(y, tmp, 16);
-	}
-    vx_printf("OK\n");
-	/* Return Y_m */
+            horner(x, h, workgroup_size - 1, tmp, 1, 1);
+            horner((x + (m - m % workgroup_size ) * AES_BLOCKLEN), h, m % workgroup_size, y, 0, 1);
+            
+            xor_block(y, tmp);
+            //memcpy((uint8_t*) (x + 1 * AES_BLOCKLEN), (uint8_t*) (x + (m - m % workgroup_size ) * AES_BLOCKLEN), AES_BLOCKLEN * (m % workgroup_size));
+            //horner(x, h, 1 + m % workgroup_size, y, 0, 1);
+            vx_printf("Finish\n");
+        }
+        //vx_barrier(0, vx_num_warps());
+    }
+
+    if (index == 0) {
+        xpos = xpos +  m * 16;
+        
+        if (x + xlen > xpos) {
+            /* Add zero padded last block */
+            size_t last = x + xlen - xpos;
+
+            vx_printf("last = %d \n", last);
+
+            memcpy(tmp, xpos, last);
+            memset(tmp + last, 0, sizeof(tmp) - last);
+            /* Y_i = (Y^(i-1) XOR X_i) dot H */
+            xor_block(y, tmp);
+
+            /* dot operation:
+            * multiplication operation for binary Galois (finite) field of
+            * 2^128 elements */
+            gf_mult(y, h, tmp);
+            memcpy(y, tmp, 16);
+        }
+    }
 }
 
 void aes_gcm_prepare_j0(const uint8_t *iv, size_t iv_len, const uint8_t *H, uint8_t *J0, size_t index)
@@ -479,16 +484,14 @@ void aes_ctr(uint64_t* in, uint64_t size_in, uint64_t* out, uint64_t* iv, uint64
     //vx_printf("I'm going here ! \n");
 
     //vx_barrier(0, 1);
-    vx_barrier(0, vx_num_warps());
-    vx_barrier(0, vx_num_warps());
+    //vx_barrier(0, 1);
+    //vx_barrier(0,  1);
     //vx_printf("%d \n", index);
 
     //vx_barrier(0, 1);
     //vx_barrier(0, 1);
 
     AES_parallel((void*) RK, J0, (uint8_t*)out, size_in, index, workgroup_size);
-
-    vx_barrier(0, vx_num_warps());
 
     //vx_fence();
 
@@ -507,28 +510,21 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
     size_t workgroup_size   = arg->grid_dim * arg->block_dim;
     
     //if (index >= workgroup_size) return;
-    
-    vx_printf("Hello! I'm thread id = %d warp id = %d core id = %d index = %d\n",\
-        vx_thread_id(), \
-        vx_warp_id(),   \
-        vx_core_id(),   \
-        index);
-
 
     if((uint8_t) arg->enc_dec)
       aes_ctr(pt, (uint64_t) arg->size_in, ct, iv, (uint64_t) arg->size_iv, index, workgroup_size);
     else
       aes_ctr(ct, (uint64_t) arg->size_out, pt, iv, (uint64_t) arg->size_iv, index, workgroup_size); 
    
-    if(index == 0){
         //aes_gcm_ghash(H, aad_ptr, arg->size_aad, (uint8_t*)ct, arg->size_in, S, index);
 
-        ghash(H, (uint8_t*)aad_ptr, arg->size_aad, S, index);
-        ghash(H, (uint8_t*)ct     , arg->size_out, S, index);
+    ghash(H, (uint8_t*)aad_ptr, arg->size_aad, S, index, workgroup_size);
+    ghash(H, (uint8_t*)ct     , arg->size_out, S, index, workgroup_size);
 
+    if(index == 0){
         AES_PUT_BE64(len_buf, arg->size_aad * 8);
         AES_PUT_BE64(len_buf + 8, arg->size_out * 8);
-        ghash(H, len_buf, sizeof(len_buf), S, index);
+        ghash(H, len_buf, sizeof(len_buf), S, index, 1);
 
         //uint8_t tag[AES_KEYLEN];
         memcpy(tag, J0, AES_BLOCKLEN);

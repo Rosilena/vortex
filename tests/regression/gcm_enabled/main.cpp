@@ -380,7 +380,7 @@ int main(int argc, char *argv[]) {
     count = 1;
   }
   
-  kernel_arg.block_dim = NUM_WARPS * NUM_THREADS;
+  kernel_arg.block_dim = 2;
   kernel_arg.roundkeys = Nr;
   kernel_arg.grid_dim  = NUM_CORES;
   kernel_arg.enc_dec   = ENC_OR_DEC;
