@@ -6,6 +6,8 @@ all:
 	$(MAKE) -C demo
 	$(MAKE) -C crypto
 	$(MAKE) -C aes_parallel
+	$(MAKE) -C aes_ecb_benchmark
+	$(MAKE) -C aes_ctr_benchmark
 	$(MAKE) -C gcm_disabled
 	$(MAKE) -C gcm_enabled
 	$(MAKE) -C dogfood
@@ -31,6 +33,8 @@ run-simx:
 	$(MAKE) -C demo run-simx
 	$(MAKE) -C crypto run-simx
 	$(MAKE) -C aes_parallel run-simx
+	$(MAKE) -C aes_ecb_benchmark run-simx
+	$(MAKE) -C aes_ctr_benchmark run-simx
 	$(MAKE) -C gcm_disabled run-simx
 	$(MAKE) -C gcm_enabled run-simx
 	$(MAKE) -C dogfood run-simx
@@ -56,6 +60,8 @@ run-rtlsim:
 	$(MAKE) -C demo run-rtlsim
 	$(MAKE) -C crypto run-rtlsim
 	$(MAKE) -C aes_parallel run-rtlsim
+	$(MAKE) -C aes_ecb_benchmark run-rtlsim
+	$(MAKE) -C aes_ctr_benchmark run-rtlsim
 	$(MAKE) -C gcm_disabled run-rtlsim
 	$(MAKE) -C gcm_enabled run-rtlsim
 	$(MAKE) -C dogfood run-rtlsim
@@ -81,6 +87,8 @@ clean:
 	$(MAKE) -C demo clean
 	$(MAKE) -C crypto clean
 	$(MAKE) -C aes_parallel clean
+	$(MAKE) -C aes_ecb_benchmark clean
+	$(MAKE) -C aes_ctr_benchmark clean
 	$(MAKE) -C gcm_disabled clean
 	$(MAKE) -C gcm_enabled clean
 	$(MAKE) -C dogfood clean

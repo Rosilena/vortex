@@ -200,15 +200,15 @@ void inc32(uint8_t *block, uint32_t amnt)
 
 void AES_parallel(void* rk_pointer, uint8_t* J0, uint8_t* buf, size_t length, size_t threadIdx, size_t workgroup_size)
 {
-    if (threadIdx >= length / 8)
+    if (threadIdx >= length / AES_BLOCKLEN)
       return;
 
     uint8_t ctr[AES_BLOCKLEN];
 
-    for (int i = 0; workgroup_size * i + threadIdx < length / AES_BLOCKLEN; i += workgroup_size) {
+    for (int i = 0; workgroup_size * i + threadIdx < length / AES_BLOCKLEN; i += 1) {
         int j = workgroup_size * i + threadIdx;
 
-        vx_printf("Encrypting block %d\n", j);
+        //vx_printf("Encrypting block %d\n", j);
         
         memcpy(ctr, J0, AES_BLOCKLEN);
 
@@ -326,7 +326,7 @@ static void horner(const uint8_t* x, const uint8_t* h, const uint64_t n, uint8_t
 	for (int i = 0; i < n; i++) {
 		/* Y_i = (Y^(i-1) XOR X_i) dot H */
 		xor_block(y, x + 16 * i * stride);
-        vx_printf("Working on %x \n", x + 16 * i * stride);
+        //vx_printf("Working on %x \n", x + 16 * i * stride);
 
 		/* dot operation:
 		 * multiplication operation for binary Galois (finite) field of
@@ -346,63 +346,65 @@ static void ghash(const uint8_t *h, uint8_t *x, size_t xlen, uint8_t *y, size_t 
 	const uint8_t *xpos = x;
 	uint8_t tmp[16];
 
-	m = xlen / 16;
+    // if (workgroup_size >= m / 2 || workgroup_size == 1) {
+    //     vx_printf("Single threaded execution m=%d; workgroup_size=%d\n", m, workgroup_size);
+    //     //Single threaded execution
+    //     if (index == 0) {
+    //         horner(xpos, h, m, y, 0, 1);
+    //     }
+    //     //vx_barrier(0, vx_num_warps());
+    //     vx_printf("OK\n");
+    // } else {
+    //     uint8_t H_pow[AES_BLOCKLEN] = {0};
 
-    if (workgroup_size > m / 2 || workgroup_size == 1) {
-        vx_printf("Single threaded execution m=%d; workgroup_size=%d\n", m, workgroup_size);
-        //Single threaded execution
-        if (index == 0) {
-            horner(xpos, h, m, y, 0, 1);
-        }
-        //vx_barrier(0, vx_num_warps());
-        vx_printf("OK\n");
-    } else {
-        uint8_t H_pow[AES_BLOCKLEN] = {0};
+    //     vx_printf("Multi threaded execution m=%d; workgroup_size=%d\n", m, workgroup_size);
 
-        vx_printf("Multi threaded execution m=%d; workgroup_size=%d\n", m, workgroup_size);
+    //     if (index == 0) {
+    //         // Calculating powers of H
+    //         memcpy(H_pow, h, 16);
 
-        if (index == 0) {
-            // Calculating powers of H
-            memcpy(H_pow, h, 16);
-
-            for (int i = 0; i < workgroup_size - 1; i++) {
-                gf_mult(H_pow, h, tmp);
-                memcpy(H_pow, tmp, 16);
-            }
-        }
+    //         for (int i = 0; i < workgroup_size - 1; i++) {
+    //             gf_mult(H_pow, h, tmp);
+    //             memcpy(H_pow, tmp, 16);
+    //         }
+    //     }
         
-        memset(tmp, 0, AES_BLOCKLEN);
-        horner(x + index * AES_BLOCKLEN, H_pow, m / workgroup_size, tmp, 0, workgroup_size);
-        vx_printf("Horner index = %d\n", index);
+    //     memset(tmp, 0, AES_BLOCKLEN);
+    //     horner(x + index * AES_BLOCKLEN, H_pow, m / workgroup_size, tmp, 0, workgroup_size);
+    //     vx_printf("Horner index = %d\n", index);
         
-        //vx_barrier(0, vx_num_warps());
-        memcpy((uint8_t*) (x + index * AES_BLOCKLEN), tmp, 16);
-        //vx_barrier(0, vx_num_warps());
+    //     //vx_barrier(0, vx_num_warps());
+    //     memcpy((uint8_t*) (x + index * AES_BLOCKLEN), tmp, 16);
+    //     //vx_barrier(0, vx_num_warps());
 
-        if (index == 0) {
-            //vx_printf("Copying 0x%x in 0x%x\n", x + workgroup_size * AES_BLOCKLEN, x + (m - m % workgroup_size ) * AES_BLOCKLEN);
+    //     if (index == 0) {
+    //         //vx_printf("Copying 0x%x in 0x%x\n", x + workgroup_size * AES_BLOCKLEN, x + (m - m % workgroup_size ) * AES_BLOCKLEN);
             
-            memset(tmp, 0, AES_BLOCKLEN);
+    //         memset(tmp, 0, AES_BLOCKLEN);
 
-            horner(x, h, workgroup_size - 1, tmp, 1, 1);
-            horner((x + (m - m % workgroup_size ) * AES_BLOCKLEN), h, m % workgroup_size, y, 0, 1);
+    //         horner(x, h, workgroup_size - 1, tmp, 1, 1);
+    //         horner((x + (m - m % workgroup_size ) * AES_BLOCKLEN), h, m % workgroup_size, y, 0, 1);
             
-            xor_block(y, tmp);
-            //memcpy((uint8_t*) (x + 1 * AES_BLOCKLEN), (uint8_t*) (x + (m - m % workgroup_size ) * AES_BLOCKLEN), AES_BLOCKLEN * (m % workgroup_size));
-            //horner(x, h, 1 + m % workgroup_size, y, 0, 1);
-            vx_printf("Finish\n");
-        }
-        //vx_barrier(0, vx_num_warps());
-    }
+    //         xor_block(y, tmp);
+    //         //memcpy((uint8_t*) (x + 1 * AES_BLOCKLEN), (uint8_t*) (x + (m - m % workgroup_size ) * AES_BLOCKLEN), AES_BLOCKLEN * (m % workgroup_size));
+    //         //horner(x, h, 1 + m % workgroup_size, y, 0, 1);
+    //         vx_printf("Finish\n");
+    //     }
+    //     //vx_barrier(0, vx_num_warps());
+    // }
 
     if (index == 0) {
+        m = xlen / 16;
+        
+        horner(xpos, h, m, y, 0, 1);
+        
         xpos = xpos +  m * 16;
         
         if (x + xlen > xpos) {
             /* Add zero padded last block */
             size_t last = x + xlen - xpos;
 
-            vx_printf("last = %d \n", last);
+            //vx_printf("last = %d \n", last);
 
             memcpy(tmp, xpos, last);
             memset(tmp + last, 0, sizeof(tmp) - last);
@@ -505,7 +507,7 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
     uint8_t  *key_ptr       = (uint8_t* ) arg->key_addr;
     uint8_t  *aad_ptr       = (uint8_t* ) arg->aad_addr;
     uint8_t S[AES_BLOCKLEN] = {0};
-	  uint8_t len_buf[16]     = {0};
+	uint8_t len_buf[16]     = {0};
     size_t index            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t workgroup_size   = arg->grid_dim * arg->block_dim;
     
@@ -518,6 +520,10 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
    
         //aes_gcm_ghash(H, aad_ptr, arg->size_aad, (uint8_t*)ct, arg->size_in, S, index);
 
+    
+    vx_fence();
+    vx_barrier(0, vx_active_warps());
+    
     ghash(H, (uint8_t*)aad_ptr, arg->size_aad, S, index, workgroup_size);
     ghash(H, (uint8_t*)ct     , arg->size_out, S, index, workgroup_size);
 
@@ -552,8 +558,8 @@ int main() {
 
       for (int i = 0; i < Nk / 2; i++) {
         RK[i / (Nk / 2)][i % (Nk / 2)] = key_first[i];
-        vx_printf("key_first[%d] = 0x%016lx \n", i, key_first[i]);
-        vx_printf("RK[%d][%d] = key_first[%d] \n", i / (Nk / 2), i % (Nk / 2), i);
+        //vx_printf("key_first[%d] = 0x%016lx \n", i, key_first[i]);
+        //vx_printf("RK[%d][%d] = key_first[%d] \n", i / (Nk / 2), i % (Nk / 2), i);
       }
 
       keyExpansion(RK);

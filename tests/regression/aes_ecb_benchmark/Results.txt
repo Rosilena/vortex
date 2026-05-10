@@ -1,0 +1,79 @@
+---------------------------- AES --------------------------------------------------------
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=100, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=34690, cycles=40560, IPC=0.855276, cycles/bytes=25.35, cycles/bytes*parallelism=202.8
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=1000, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=121990, cycles=126320, IPC=0.965722, cycles/bytes=7.895, cycles/bytes*parallelism=63.16
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=5000, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=509990, cycles=508949, IPC=1.002045, cycles/bytes=6.36186, cycles/bytes*parallelism=50.89
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=10000, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=994990, cycles=986996, IPC=1.008099, cycles/bytes=6.168725, cycles/bytes*parallelism=49.34
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=20000, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=1964990, cycles=1943411, IPC=1.011104, cycles/bytes=6.073159375, cycles/bytes*parallelism=48.58
+
+
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=100, BLOCK SIZE = 16, GRID SIZE = 1
+instrs=35858, cycles=38348, IPC=0.935068, cycles/bytes=25.967, cycles/bytes*parallelism=383.48
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=1000, BLOCK SIZE = 16, GRID SIZE = 1
+ instrs=123158, cycles=83648, IPC=1.472336, cycles/bytes=5.228, cycles/bytes*parallelism=83.648
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=5000, BLOCK SIZE = 16, GRID SIZE = 1
+instrs=511158, cycles=286220, IPC=1.785892, cycles/bytes=3.57775, cycles/bytes*parallelism=57.244
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=10000, BLOCK SIZE = 16, GRID SIZE = 1
+instrs=996158, cycles=538772, IPC=1.848942, cycles/bytes=3.367325, cycles/bytes*parallelism=53.8772
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=20000, BLOCK SIZE = 16, GRID SIZE = 1
+instrs=1966158, cycles=1045126, IPC=1.881264, cycles/bytes=3.26601875, cycles/bytes*parallelism=52.2563
+
+
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=100, BLOCK SIZE = 32, GRID SIZE = 1
+instrs=38190, cycles=44839, IPC=0.851714, cycles/bytes=28.02437, cycles/bytes*parallelism=896.78
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=1000, BLOCK SIZE = 32, GRID SIZE = 1
+instrs=125490, cycles=86357, IPC=1.453154, cycles/bytes=5.3973125, cycles/bytes*parallelism=172.714
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=5000, BLOCK SIZE = 32, GRID SIZE = 1
+instrs=513490, cycles=271063, IPC=1.894357, cycles/bytes=3.3882875, cycles/bytes*parallelism=108.4252
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=10000, BLOCK SIZE = 32, GRID SIZE = 1
+instrs=998490, cycles=501534, IPC=1.990872, cycles/bytes=3.1345875, cycles/bytes*parallelism=100.3068
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=20000, BLOCK SIZE = 32, GRID SIZE = 1
+instrs=1968490, cycles=963289, IPC=2.043509, cycles/bytes=3.010278125, cycles/bytes*parallelism=96.3289
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=100000, BLOCK SIZE = 32, GRID SIZE = 1
+instrs=9728490, cycles=4657735, IPC=2.088674, cycles/bytes=2.911084375, cycles/bytes*parallelism=93.1547
+
+
+------------------------------------ VECADD -------------------------------------------------------------
+8 THREADS 40000 bytes instrs=322246, cycles=331418, IPC=0.972325 cycles/byte 8.28545
+
+16 THREADS 40000 bytes instrs=324206, cycles=234453, IPC=1.382819 cycles/byte 5.861325
+
+32 THREADS 40000 bytes instrs=328340, cycles=212179, IPC=1.547467 cycles/byte 5.304475
+
+
+---------------------------- AES GCM --------------------------------------------------------
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=100, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=267107, cycles=1071009, IPC=0.249398, cycles/bytes=669.380625, cycles/bytes*parallelism=5355.045
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=1000, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=121990, cycles=126320, IPC=0.965722, cycles/bytes=7.895, cycles/bytes*parallelism=63.16
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=5000, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=509990, cycles=508949, IPC=1.002045, cycles/bytes=6.36186, cycles/bytes*parallelism=50.89
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=10000, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=994990, cycles=986996, IPC=1.008099, cycles/bytes=6.168725, cycles/bytes*parallelism=49.34
+
+CORE=1, WARPS=4, THREAD=32, TEST_SIZE=20000, BLOCK SIZE = 8, GRID SIZE = 1
+instrs=1964990, cycles=1943411, IPC=1.011104, cycles/bytes=6.073159375, cycles/bytes*parallelism=48.58

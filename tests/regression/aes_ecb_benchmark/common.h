@@ -4,12 +4,11 @@
 #include <VX_config.h>
 #include <stdint.h>
 
-#define BENCHMARK 1
-#define BENCHMARK_SIZE 100
 #define AES128 1
 //#define AES192 1
 //#define AES256 1
-#define ENC_OR_DEC 1
+//#define ENC_OR_DEC 1
+#define TEST_SIZE 20000
 
 #define AES_BLOCKLEN 16 // Block length in bytes - AES is 128b block only
 
@@ -35,30 +34,15 @@ typedef struct {
   uint32_t block_dim;
   uint64_t size_in;
   uint64_t size_out;
-  uint64_t size_aad;
-  uint64_t size_iv;
   uint64_t roundkeys;
   uint64_t* key_addr;
   uint64_t* in_addr;
-  uint64_t* iv_addr;
-  uint64_t* aad_addr;
   uint64_t* out_addr;
-  uint64_t* tag_addr;
-  uint8_t   enc_dec;
 } kernel_arg_t;
 
 
 static inline void AES_PUT_BE64(uint8_t *a, uint64_t val)
 {
-	// a[0] = val >> 56;
-	// a[1] = val >> 48;
-	// a[2] = val >> 40;
-	// a[3] = val >> 32;
-	// a[4] = val >> 24;
-	// a[5] = val >> 16;
-	// a[6] = val >> 8;
-	// a[7] = val & 0xff;
-
   __asm__ (
         "rev8 %0, %1"
         : "=r"(*((uint64_t*) a))
