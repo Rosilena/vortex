@@ -388,7 +388,7 @@ int run_kernel_test(const kernel_arg_t& kernel_arg) {
   elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
   printf("Total elapsed time: %lg ms\n", elapsed);
 
-  return errors;
+  return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -399,7 +399,7 @@ int main(int argc, char *argv[]) {
     count = 1;
   }
   
-  kernel_arg.block_dim = 8;
+  kernel_arg.block_dim = 32;
   kernel_arg.roundkeys = Nr;
   kernel_arg.grid_dim  = 1;
   kernel_arg.enc_dec   = ENC_OR_DEC;

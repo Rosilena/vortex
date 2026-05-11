@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define BENCHMARK 1
-#define BENCHMARK_SIZE 100
+#define BENCHMARK_SIZE 10000
 #define AES128 1
 //#define AES192 1
 //#define AES256 1
