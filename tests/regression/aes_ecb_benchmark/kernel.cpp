@@ -2,6 +2,7 @@
 #include <vx_spawn.h>
 #include <vx_print.h>
 #include <string.h>
+/*
 #include "common.h"
 #include "aes-common.h"
 
@@ -27,159 +28,6 @@ void print_block(const char *name, const uint8_t *b)
     for (int i = 0; i < 16; i++)
         vx_printf("%02x ", b[i]);
     vx_printf("\n");
-}
-
-#define AES_KEYROUND_256_0(RND) \
-      __asm__ (                                                                 \
-            "aes64ks1i t0, %5," #RND "\n\t"                                     \
-            "aes64ks2  %0, t0, %3 \n\t"                                         \
-            "aes64ks2  %1, %4, %2"                                              \
-            : "=r"(key[RND +1][0]), "=r"(key[RND+1][1])                         \
-            : "r"(key[RND][1]), "r"(key[RND][0]), "0"(key[RND+1][0]), "r"(key[RND][3])            \
-            : "t0"                                                              \
-      );
-
-#define AES_KEYROUND_256_1(RND)                     \
-      __asm__ (                     \
-            "aes64ks1i t0, %4, 0xA    \n\t"                     \
-            "aes64ks2  %0, t0, %3     \n\t"                     \
-            "aes64ks2  %1, %5, %2     \n\t"                     \
-            : "=r"(key[RND + 1][2]), "=r"(key[RND + 1][3])                      \
-            : "r"(key[RND][3]), "r"(key[RND][2]), "r"(key[RND + 1][1]), "0"(key[RND + 1][2])                        \
-            : "t0"                      \
-      );
-
-#define AES_KEYROUND_192(RND) \
-      __asm__ (                                                                                                     \
-            "aes64ks1i t0, %3," #RND "\n\t"                                                                         \
-            "aes64ks2  %0, t0, %5 \n\t"                                                                             \
-            "aes64ks2  %1, %6, %4 \n\t"                                                                             \
-            "aes64ks2  %2, %7, %3 \n\t"                                                                             \
-            : "=r"(key[RND + 1][0]), "=r"(key[RND + 1][1]), "=r"(key[RND + 1][2])                                   \
-            : "r"(key[RND][2]), "r"(key[RND][1]), "r"(key[RND][0]), "0"(key[RND + 1][0]), "1"(key[RND + 1][1])      \
-            : "t0"                                                                                                  \
-      );
-
-#define AES_KEYROUND(RND) \
-      __asm__ (                                                                 \
-            "aes64ks1i t0, %2," #RND "\n\t"                                     \
-            "aes64ks2  %0, t0, %3 \n\t"                                         \
-            "aes64ks2  %1, %4, %2"                                              \
-            : "=r"(key[RND +1][0]), "=r"(key[RND+1][1])                         \
-            : "r"(key[RND][1]), "r"(key[RND][0]), "0"(key[RND+1][0])            \
-            : "t0"                                                              \
-      );
-
-void aes_double_round(state_t aes_state, const int &i, uint64_t round_keys[Nr + 1][2]) {
-      __asm__ (
-            "aes64esm t0, %0, %1\n\t"
-            "aes64esm t1, %1, %0\n\t"
-            "xor      t0, t0, %4\n\t"
-            "xor      t1, t1, %5\n\t"
-            "aes64esm %0, t0, t1\n\t"
-            "aes64esm %1, t1, t0\n\t"
-            : "=r"(aes_state[0]), "=r"(aes_state[1])
-            : "0"(aes_state[0]), "1"(aes_state[1]), "r"(round_keys[2 * i + 1][0]), "r"(round_keys[2 * i + 1][1])
-            : "t0", "t1"
-      );
-      aes_state[0] ^= round_keys[2 * (i + 1)][0];
-      aes_state[1] ^= round_keys[2 * (i + 1)][1];
-}
-
-void aes_round(state_t aes_state, const int &rnd, uint64_t round_keys[Nr + 1][2]) {
-    __asm__ (
-            "aes64esm t0, %0, %1\n\t"
-            "aes64esm t1, %1, %0\n\t"
-            "xor      %0, t0, %4\n\t"
-            "xor      %1, t1, %5\n\t"
-            : "=r"(aes_state[0]), "=r"(aes_state[1])
-            : "0"(aes_state[0]), "1"(aes_state[1]), "r"(round_keys[rnd][0]), "r"(round_keys[rnd][1])
-            : "t0", "t1"
-    );
-}
-
-void aes_final_round(state_t aes_state, const int &rnd, uint64_t round_keys[Nr + 1][2]) {
-    __asm__ (
-            "aes64es t0, %0, %1\n\t"
-            "aes64es t1, %1, %0\n\t"
-            "xor     %0, t0, %4\n\t"
-            "xor     %1, t1, %5\n\t"
-            : "=r"(aes_state[0]), "=r"(aes_state[1])
-            : "0"(aes_state[0]), "1"(aes_state[1]), "r"(round_keys[rnd][0]), "r"(round_keys[rnd][1])
-            : "t0", "t1"
-    );
-}
-
-void keyExpansion(uint64_t key[Nr+1][Nk / 2]) {
-
-#if defined(AES256) && (AES256 == 1)
-      AES_KEYROUND_256_0(0);
-      AES_KEYROUND_256_1(0);
-      AES_KEYROUND_256_0(1);
-      AES_KEYROUND_256_1(1);
-      AES_KEYROUND_256_0(2);
-      AES_KEYROUND_256_1(2);
-      AES_KEYROUND_256_0(3);
-      AES_KEYROUND_256_1(3);
-      AES_KEYROUND_256_0(4);
-      AES_KEYROUND_256_1(4);
-      AES_KEYROUND_256_0(5);
-      AES_KEYROUND_256_1(5);
-      AES_KEYROUND_256_0(6);
-#elif (defined(AES192) && (AES192 == 1))
-      AES_KEYROUND_192(0);
-      AES_KEYROUND_192(1);
-      AES_KEYROUND_192(2);
-      AES_KEYROUND_192(3);
-      AES_KEYROUND_192(4);
-      AES_KEYROUND_192(5);
-      AES_KEYROUND_192(6);
-      AES_KEYROUND_192(7);
-#else
-      AES_KEYROUND(0);
-      AES_KEYROUND(1);
-      AES_KEYROUND(2);
-      AES_KEYROUND(3);
-      AES_KEYROUND(4);
-      AES_KEYROUND(5);
-      AES_KEYROUND(6);
-      AES_KEYROUND(7);
-      AES_KEYROUND(8);
-      AES_KEYROUND(9);
-#endif
-
-    //   for(int i=0; i<Nr+1; i++) {
-    //         uint64_t key_be_low  = AES_GET_BE64((uint8_t*) key, 16 * i);
-    //         uint64_t key_be_high = AES_GET_BE64((uint8_t*) key, 16 * i + 8);
-
-    //         vx_printf("key %d ", i);
-    //         vx_printf(" 0x%016lx " "0x%016lx \n", key_be_low, key_be_high);
-    //   }
-}
-
-void Cipher(state_t aes_state, void* rk_pointer) {
-    uint64_t (*round_keys)[2] = (uint64_t(*)[2]) rk_pointer;
-
-    //print_aes_state(aes_state, 0);  
-    //Add round key before starting the rounds.
-    aes_state[0] ^= round_keys[0][0];
-    aes_state[1] ^= round_keys[0][1];
-
-    // print_aes_state(aes_state, 0);
-
-    //NR - 2 round
-    for(int i = 0; i < (Nr - 1)/2; i++){
-      aes_double_round(aes_state, i, round_keys);
-      //print_aes_state(aes_state, 2 * (i + 1));  
-    }
-
-    // ROUND Nr - 1
-    aes_round(aes_state, Nr - 1, round_keys);
-    //print_aes_state(aes_state, Nr - 1); 
-
-    //Final round
-    aes_final_round(aes_state, Nr, round_keys);
-    //print_aes_state(aes_state, Nr);
 }
 
 void inc32(uint8_t *block)
@@ -232,13 +80,14 @@ void kernel_body(kernel_arg_t* __UNIFORM__ arg) {
     return;
 }
 
-
+*/
 int main() {
-	kernel_arg_t* __UNIFORM__ arg = (kernel_arg_t*)csr_read(VX_CSR_MSCRATCH);
+	/*
+      kernel_arg_t* __UNIFORM__ arg = (kernel_arg_t*)csr_read(VX_CSR_MSCRATCH);
       //primo parametro: dimensione (1,2,3) sarebbe x,y e z
       //secondo parametro: dimensione griglia (in questo caso array) sarebbe numero di blocchi presenti nella griglia
       //terzo parametro: dimensione blocco sarebbe numero di thread per blocco
-
+      
       uint64_t *key_first     = (uint64_t*)arg->key_addr;
 
       if (vx_core_id() == 0) {
@@ -254,4 +103,5 @@ int main() {
       }
 
       return vx_spawn_threads(1, &arg->grid_dim, &arg->block_dim, (vx_kernel_func_cb)kernel_body, arg);
+      */
 }

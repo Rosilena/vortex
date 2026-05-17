@@ -1,322 +1,75 @@
 #include <vx_intrinsics.h>
 #include "common.h"
+#include "aes.h"
+#include "aes_common.h"
 #include <vx_spawn.h>
 #include <vx_print.h>
+#include <cstring>
 
-#define AES_KEYROUND(RND) \
-      __asm__ (                                                                 \
-            "aes64ks1i t0, %2," #RND "\n\t"                                     \
-            "aes64ks2  %0, t0, %3 \n\t"                                         \
-            "aes64ks2  %1, %4, %2"                                              \
-            : "=r"(key[RND][0]), "=r"(key[RND][1])                              \
-            : "r"(key[RND - 1][1]), "r"(key[RND - 1][0]), "0"(key[RND][0])      \
-            : "t0"                                                              \
-      );
+typedef struct {
+  uint8_t*  in_addr;
+  uint64_t  in_size;
+  uint8_t*  out_addr;
+  uint64_t  out_size;
+  uint8_t*  key_addr;
+  uint64_t  key_size;
+  void (*kernel_func)(aes_config_t* config, state_t in);
+} kernel_func_arg_t;
 
-uint8_t key_u8[16] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
-uint64_t key[11][2];
+aes_config_t config;
 
+void kernel_body(kernel_func_arg_t* __UNIFORM__ arg) {
+      uint64_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+      
+      vx_printf("Encrypting block %d on core %d\n", idx, vx_core_id());
+      vx_print_block((arg->in_addr + idx * AES_BLOCKLEN));
+
+      arg->kernel_func(&config, (uint64_t*) (arg->in_addr + idx * AES_BLOCKLEN));
+      memcpy((void*)(arg->out_addr + idx * AES_BLOCKLEN), (void*)(arg->in_addr + idx * AES_BLOCKLEN), AES_BLOCKLEN);
+
+      vx_printf("Ciphertext block %d on core %d\n", idx, vx_core_id());
+      vx_print_block((arg->out_addr + idx * AES_BLOCKLEN));
+}
 
 int main() {
-	kernel_arg_t* __UNIFORM__ arg = (kernel_arg_t*)csr_read(VX_CSR_MSCRATCH);
-      test_type* src0_ptr = (test_type*)arg->src0_addr;
-      test_type* src1_ptr = (test_type*)arg->src1_addr;
-	test_type* dst_ptr = (test_type*)arg->dst_addr;
+      kernel_arg_t* __UNIFORM__ arg = (kernel_arg_t*)csr_read(VX_CSR_MSCRATCH);
       
-      __asm__ (
-            "ror %0, %1, %2"
-            : "=r"(dst_ptr[0])
-            : "r"(src0_ptr[0]), "r"(src1_ptr[0])
-      );
-    
-      __asm__ (
-             "rol %0, %1, %2"
-             : "=r"(dst_ptr[1])
-             : "r"(src0_ptr[1]), "r"(src1_ptr[1])
-      );
-      
-        __asm__ (
-              "rori %0, %1, %2"
-              : "=r"(dst_ptr[2])
-              : "r"(src0_ptr[2]), "i"(4)
-        );
+      uint8_t *pt  = (uint8_t*) arg->pt_addr;
+      uint8_t *ct  = (uint8_t*) arg->ct_addr;
+      uint8_t *key = (uint8_t*) arg->key_addr;
 
-      #ifdef XLEN_64
-          __asm__ (
-                "rorw %0, %1, %2"
-                : "=r"(dst_ptr[15])
-                : "r"(src0_ptr[15]), "r"(src1_ptr[15])
-          );
+      if (vx_core_id() == 0) {
+            config = aes_init(arg->aes_size, (uint64_t*) arg->round_keys_addr, arg->encrypt);
 
-          __asm__ (
-                "rolw %0, %1, %2"
-                : "=r"(dst_ptr[16])
-                : "r"(src0_ptr[16]), "r"(src1_ptr[16])
-          );
+            vx_printf("AES Config: size=%d, Nk=%d, Nr=%d, encrypt=%d\n", config.size, config.Nk, config.Nr, config.encrypt);
+            vx_printf("Round Key size: %d bytes\n", arg->round_keys_size);
 
-          __asm__ (
-                "roriw %0, %1, %2"
-                : "=r"(dst_ptr[17])
-                : "r"(src0_ptr[17]), "i"(6)
-          );
+            uint64_t (*round_keys)[2] = (uint64_t(*)[2]) arg->round_keys_addr;
 
-      #endif
+            for (int i = 0; i < config.Nk / 2; i++) {
+                  vx_printf("Loading round key %d: 0x%016lx \n", i, ((uint64_t*) key)[i]);
+                  round_keys[i / (config.Nk / 2)][i % (config.Nk / 2)] = ((uint64_t*) key)[i];
+            }
 
-      __asm__ (
-            "pack %0, %1, %2"
-            : "=r"(dst_ptr[3])
-            : "r"(src0_ptr[3]), "r"(src1_ptr[3])
-      );
-      
-      __asm__ (
-              "packh %0, %1, %2"
-              : "=r"(dst_ptr[4])
-              : "r"(src0_ptr[4]), "r"(src1_ptr[4])
-        );
+            if (arg->encrypt) {
+                  key_expansion(&config);
+            } else {
+                  inv_key_expansion(&config);
+            }
+      }
 
-      #ifdef XLEN_64
-          __asm__ (
-                  "packw %0, %1, %2"
-                  : "=r"(dst_ptr[18])
-                  : "r"(src0_ptr[18]), "r"(src1_ptr[18])
-            );
+      vx_fence();
+      vx_barrier(0, vx_active_warps());
 
-      #endif
+      kernel_func_arg_t kernel_arg = {
+            .in_addr =  arg->encrypt ? pt : ct,
+            .in_size =  arg->encrypt ? arg->pt_size : arg->ct_size,
+            .out_addr = arg->encrypt ? ct : pt,
+            .out_size = arg->encrypt ? arg->ct_size : arg->pt_size,
+            .key_addr = key,
+            .key_size = arg->key_size,
+            .kernel_func = arg->encrypt ? cipher : decipher
+      };
 
-        __asm__ (
-              "brev8 %0, %1"
-              : "=r"(dst_ptr[5])
-              : "r"(src0_ptr[5])
-        );
-
-
-        __asm__ (
-              "rev8 %0, %1"
-              : "=r"(dst_ptr[6])
-              : "r"(src0_ptr[6])
-        );
-
-      #ifdef XLEN_32
-          __asm__ (
-                  "zip %0, %1"
-                  : "=r"(dst_ptr[15])
-                  : "r"(src0_ptr[15])
-            );
-
-            __asm__ (
-                  "unzip %0, %1"
-                  : "=r"(dst_ptr[16])
-                  : "r"(src0_ptr[16])
-            );
-
-      #endif
-
-
-      __asm__ (
-              "clmul %0, %1, %2"
-              : "=r"(dst_ptr[7])
-              : "r"(src0_ptr[7]), "r"(src1_ptr[7])
-        );
-
-
-        __asm__ (
-              "clmulh %0, %1, %2"
-              : "=r"(dst_ptr[8])
-              : "r"(src0_ptr[8]), "r"(src1_ptr[8])
-        );
-
-        __asm__ (
-              "xperm8 %0, %1, %2"
-              : "=r"(dst_ptr[9])
-              : "r"(src0_ptr[9]), "r"(src1_ptr[9])
-        );
-
-        __asm__ (
-              "xperm4 %0, %1, %2"
-              : "=r"(dst_ptr[10])
-              : "r"(src0_ptr[10]), "r"(src1_ptr[10])
-        );
-
-      
-      #ifdef XLEN_32
-          __asm__ (
-                "aes32dsi %0, %1, %2, %3"
-                : "=r"(dst_ptr[17])
-                : "r"(src0_ptr[17]), "r"(src1_ptr[17]), "i"(3)
-          );
-
-        __asm__ (
-                "aes32dsmi %0, %1, %2, %3"
-                : "=r"(dst_ptr[18])
-                : "r"(src0_ptr[18]), "r"(src1_ptr[18]), "i"(2)
-          );
-      #endif
-
-      #ifdef XLEN_64
-        __asm__ (
-                "aes64ds %0, %1, %2"
-                : "=r"(dst_ptr[19])
-                : "r"(src0_ptr[19]), "r"(src1_ptr[19])
-          );
-
-        __asm__ (
-                "aes64dsm %0, %1, %2"
-                : "=r"(dst_ptr[20])
-                : "r"(src0_ptr[20]), "r"(src1_ptr[20])
-          );
-
-        __asm__ (
-                "aes64im %0, %1"
-                : "=r"(dst_ptr[21])
-                : "r"(src0_ptr[21])
-        );
-
-        __asm__ (
-                "aes64ks1i %0, %1, %2"
-                : "=r"(dst_ptr[22])
-                : "r"(src0_ptr[22]), "i"(1)
-          );
-
-        __asm__ (
-                "aes64ks2 %0, %1, %2"
-                : "=r"(dst_ptr[23])
-                : "r"(src0_ptr[23]), "r"(src1_ptr[23])
-          );
-
-      #endif
-
-      #ifdef XLEN_32
-          __asm__ (
-                "aes32esi %0, %1, %2, %3"
-                : "=r"(dst_ptr[19])
-                : "r"(src0_ptr[19]), "r"(src1_ptr[19]), "i"(2)
-          );
-
-        __asm__ (
-                "aes32esmi %0, %1, %2, %3"
-                : "=r"(dst_ptr[20])
-                : "r"(src0_ptr[20]), "r"(src1_ptr[20]), "i"(3)
-          );
-
-      #endif
-
-      #ifdef XLEN_64
-        __asm__ (
-                "aes64es %0, %1, %2"
-                : "=r"(dst_ptr[24])
-                : "r"(src0_ptr[24]), "r"(src1_ptr[24])
-          );
-
-        __asm__ (
-                "aes64esm %0, %1, %2"
-                : "=r"(dst_ptr[25])
-                : "r"(src0_ptr[25]), "r"(src1_ptr[25])
-          );
-      #endif
-
-      __asm__ (
-                "sha256sig0 %0, %1"
-                : "=r"(dst_ptr[11])
-                : "r"(src0_ptr[11])
-      );
-      __asm__ (
-                "sha256sig1 %0, %1"
-                : "=r"(dst_ptr[12])
-                : "r"(src0_ptr[12])
-      );
-
-      __asm__ (
-                "sha256sum0 %0, %1"
-                : "=r"(dst_ptr[13])
-                : "r"(src0_ptr[13])
-      );
-
-      __asm__ (
-                "sha256sum1 %0, %1"
-                : "=r"(dst_ptr[14])
-                : "r"(src0_ptr[14])
-      );
-
-      #ifdef XLEN_32
-          __asm__ (
-                "sha512sig0h %0, %1, %2"
-                : "=r"(dst_ptr[21])
-                : "r"(src0_ptr[21]), "r"(src1_ptr[21])
-          );
-
-
-          __asm__ (
-                  "sha512sig0l %0, %1, %2"
-                  : "=r"(dst_ptr[22])
-                  : "r"(src0_ptr[22]), "r"(src1_ptr[22])
-            );
-
-
-            __asm__ (
-                  "sha512sig1h %0, %1, %2"
-                  : "=r"(dst_ptr[23])
-                  : "r"(src0_ptr[23]), "r"(src1_ptr[23])
-            );
-
-          __asm__ (
-                  "sha512sig1l %0, %1, %2"
-                  : "=r"(dst_ptr[24])
-                  : "r"(src0_ptr[24]), "r"(src1_ptr[24])
-            );
-
-
-            __asm__ (
-                  "sha512sum0r %0, %1, %2"
-                  : "=r"(dst_ptr[25])
-                  : "r"(src0_ptr[25]), "r"(src1_ptr[25])
-            );
-
-          __asm__ (
-                  "sha512sum1r %0, %1, %2"
-                  : "=r"(dst_ptr[26])
-                  : "r"(src0_ptr[26]), "r"(src1_ptr[26])
-            );
-
-
-        #endif
-
-      #ifdef XLEN_64
-
-          __asm__ (
-                  "sha512sig0 %0, %1"
-                  : "=r"(dst_ptr[26])
-                  : "r"(src0_ptr[26])
-            );
-
-          __asm__ (
-                  "sha512sig1 %0, %1"
-                  : "=r"(dst_ptr[27])
-                  : "r"(src0_ptr[27])
-            );
-
-          __asm__ (
-                  "sha512sum0 %0, %1"
-                  : "=r"(dst_ptr[28])
-                  : "r"(src0_ptr[28])
-            );
-            
-          __asm__ (
-                  "sha512sum1 %0, %1"
-                  : "=r"(dst_ptr[29])
-                  : "r"(src0_ptr[29])
-            );
-      #endif
-
-      //key[0][0] = AES_GET_BE64(key_u8, 0);
-      //key[0][1] = AES_GET_BE64(key_u8, 8);
-
-      key[0][0] = *((uint64_t*) &key_u8[0]);
-      key[0][1] = *((uint64_t*) &key_u8[8]);
-
-      AES_KEYROUND(1);
-
-      dst_ptr[30] = key[1][0];
-      dst_ptr[31] = key[1][1];
-      	
-      return 0;
+      return vx_spawn_threads(1, &arg->grid_dim, &arg->block_dim, (vx_kernel_func_cb) kernel_body, (void*) &kernel_arg);
 }

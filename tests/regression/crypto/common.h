@@ -2,6 +2,8 @@
 #define _COMMON_H_
 
 #include <VX_config.h>
+#include <stdint.h>
+#include "aes_common.h"
 
 #ifdef XLEN_64
   typedef uint64_t test_type;
@@ -10,9 +12,18 @@
 #endif
 
 typedef struct {
-  test_type src0_addr;
-  test_type src1_addr;
-  test_type dst_addr;  
+  uint8_t*  pt_addr;
+  uint64_t  pt_size;
+  uint8_t*  ct_addr;
+  uint64_t  ct_size;
+  uint8_t*  key_addr;
+  uint64_t  key_size;
+  uint8_t*  round_keys_addr;
+  uint64_t  round_keys_size;
+  AES_SIZE  aes_size;  
+  bool    encrypt; // true for encryption, false for decryption
+  uint32_t grid_dim;
+  uint32_t block_dim;
 } kernel_arg_t;
 
 #endif
