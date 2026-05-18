@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
     count = 1;
   }
   
-  kernel_arg.block_dim = 32;
+  kernel_arg.block_dim = 16;
   kernel_arg.roundkeys = Nr;
   kernel_arg.grid_dim  = 1;
   kernel_arg.size_in   = TEST_SIZE * (AES_BLOCKLEN);
