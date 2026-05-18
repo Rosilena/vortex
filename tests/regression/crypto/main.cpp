@@ -49,6 +49,9 @@ vx_buffer_h tag_buffer = nullptr;
 
 kernel_arg_t kernel_arg = {};
 
+// Device capabilities
+uint64_t num_cores, num_warps, num_threads;
+
 static void show_usage() {
   std::cout << "Vortex Cryptographic Extensions suite...." << std::endl;
   std::cout << "Usage: [-a algorithm][-t: test][-n size][-h: help]" << std::endl;
@@ -124,27 +127,34 @@ void run_aes_ecb_test() {
   if (algorithm.find("128") != std::string::npos) {
     key_size = 16;
     round_keys_size = (AES_128_NR + 1) * sizeof(uint64_t) * 2;
+    kernel_arg.aes_size = AES128;
   } else if (algorithm.find("192") != std::string::npos) {
     key_size = 24;
     round_keys_size = (AES_192_NR + 1) * sizeof(uint64_t) * 2;
+    kernel_arg.aes_size = AES192;
   } else if (algorithm.find("256") != std::string::npos) {
     key_size = 32;
     round_keys_size = (AES_256_NR + 1) * sizeof(uint64_t) * 2;
+    kernel_arg.aes_size = AES256;
   }
 
-  if (test == 1) {
+  if (test == 1 || test == 2) {
     pt_size = size * AES_BLOCKLEN;
     ct_size = size * AES_BLOCKLEN;
 
     for(uint64_t i = 0; i < pt_size; i++){
       pt_vec.push_back(i % 256);
     }
+    ct_vec.resize(ct_size, 0);
+
+    for (uint64_t i = 0; i < key_size; i++) {
+      key_vec.push_back(i % 256);
+    }
   } else {
     if (algorithm.find("128") != std::string::npos) {
       pt_size = sizeof(aes_128_ecb_pt);
       ct_size = sizeof(aes_128_ecb_ct);
       
-      kernel_arg.aes_size = AES128;
       pt_vec.assign(aes_128_ecb_pt, aes_128_ecb_pt + pt_size);
       key_vec.assign(aes_128_ecb_key, aes_128_ecb_key + key_size);
       expected_ct = aes_128_ecb_ct;
@@ -176,9 +186,16 @@ void run_aes_ecb_test() {
   kernel_arg.pt_size = pt_size;
   kernel_arg.ct_size = ct_size;
   kernel_arg.key_size = key_size;
+  kernel_arg.in_memory_test = (test == 2 ? true : false);
   kernel_arg.round_keys_size = round_keys_size;
-  kernel_arg.grid_dim = (pt_size + AES_BLOCKLEN - 1) / AES_BLOCKLEN; // one thread per block
-  kernel_arg.block_dim = 1;
+
+  if ( test == 0 || test == 1) {
+    kernel_arg.grid_dim = (pt_size + AES_BLOCKLEN - 1) / AES_BLOCKLEN; // one thread per block
+    kernel_arg.block_dim = 1;
+  } else {
+    kernel_arg.grid_dim = 1;
+    kernel_arg.block_dim = num_warps * num_threads;
+  }
 
   uint64_t pt_addr = 0, ct_addr = 0, key_addr = 0, round_keys_addr = 0;
 
@@ -219,8 +236,8 @@ void run_aes_ecb_test() {
   RT_CHECK(vx_start(device, krnl_buffer, args_buffer));
   RT_CHECK(vx_ready_wait(device, VX_MAX_TIMEOUT));
 
-  // download ct buffer
-  RT_CHECK(vx_copy_from_dev(ct_vec.data(), ct_buffer, 0, ct_size));
+  // download pt buffer, that contains cyphertext data
+  RT_CHECK(vx_copy_from_dev(ct_vec.data(), pt_buffer, 0, ct_size));
 
   if (test == 0) {
     // verify encryption result
@@ -239,8 +256,9 @@ void run_aes_ecb_test() {
     } else {
       std::cout << "Encryption test FAILED with " << errors << " errors!" << std::endl;
     }
+  } else {
+    std::cout << "Encryption Performance Test finished" << std::endl;
   }
-
   vx_dump_perf(device, stdout);
 
   // Decryption test
@@ -248,7 +266,15 @@ void run_aes_ecb_test() {
   std::cout << "upload kernel argument" << std::endl;
   RT_CHECK(vx_upload_bytes(device, &kernel_arg, sizeof(kernel_arg_t), &args_buffer));
 
-  ct_vec.assign(expected_ct, expected_ct + ct_size);
+  if (test == 0) {
+    ct_vec.assign(expected_ct, expected_ct + ct_size);
+  } else {
+    for(uint64_t i = 0; i < pt_size; i++){
+      ct_vec.push_back(i % 256);
+    }
+
+    pt_vec.assign(pt_size, 0);
+  }
   std::cout << "Upload ciphertext buffer" << std::endl;
   RT_CHECK(vx_copy_to_dev(ct_buffer, ct_vec.data(), 0, ct_size));
   
@@ -256,8 +282,8 @@ void run_aes_ecb_test() {
   RT_CHECK(vx_start(device, krnl_buffer, args_buffer));
   RT_CHECK(vx_ready_wait(device, VX_MAX_TIMEOUT));
 
-  // download pt buffer
-  RT_CHECK(vx_copy_from_dev(pt_vec.data(), pt_buffer, 0, pt_size));
+  // download ct buffer, that contains pt data
+  RT_CHECK(vx_copy_from_dev(pt_vec.data(), ct_buffer, 0, pt_size));
 
   if (test == 0) {
     // verify decryption result
@@ -276,6 +302,8 @@ void run_aes_ecb_test() {
     } else {
       std::cout << "Decryption test FAILED with " << errors << " errors!" << std::endl;
     }
+  } else {
+    std::cout << "Decryption Performance Test finished" << std::endl;
   }
 
   cleanup();
@@ -326,7 +354,6 @@ int main(int argc, char *argv[]) {
   std::cout << "open device connection" << std::endl;
   RT_CHECK(vx_dev_open(&device));
 
-  uint64_t num_cores, num_warps, num_threads;
   RT_CHECK(vx_dev_caps(device, VX_CAPS_NUM_CORES, &num_cores));
   RT_CHECK(vx_dev_caps(device, VX_CAPS_NUM_WARPS, &num_warps));
   RT_CHECK(vx_dev_caps(device, VX_CAPS_NUM_THREADS, &num_threads));

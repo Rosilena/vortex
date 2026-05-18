@@ -20,10 +20,11 @@ typedef struct {
   uint64_t  key_size;
   uint8_t*  round_keys_addr;
   uint64_t  round_keys_size;
-  AES_SIZE  aes_size;  
-  bool    encrypt; // true for encryption, false for decryption
-  uint32_t grid_dim;
-  uint32_t block_dim;
+  AES_SIZE  aes_size;
+  bool      in_memory_test; 
+  bool      encrypt; // true for encryption, false for decryption
+  uint32_t  grid_dim;
+  uint32_t  block_dim;
 } kernel_arg_t;
 
 #endif
