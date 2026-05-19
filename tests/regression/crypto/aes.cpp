@@ -236,7 +236,7 @@ void cipher(aes_config_t* config, state_t aes_state) {
 
     //Final round
     aes_enc_final_round(aes_state, config->Nr, round_keys);
-    //vx_print_aes_state(aes_state, config->Nr);
+    vx_print_aes_state(aes_state, config->Nr);
 }
 
 void decipher(aes_config_t* config, state_t aes_state) {
