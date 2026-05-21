@@ -10,7 +10,7 @@
 
 uint64_t     tot_threads;
 //uint8_t* rnd_keys = (uint8_t*) LMEM_BASE_ADDR;
-uint8_t  rnd_keys[AES_BLOCKLEN * (AES_128_NR + 1)];
+uint8_t  rnd_keys[AES_BLOCKLEN * (AES_256_NR + 1)];
 aes_config_t config;
 
 

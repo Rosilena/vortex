@@ -6,7 +6,7 @@
 #include <vx_print.h>
 
 extern aes_config_t config;
-extern uint8_t  rnd_keys[AES_BLOCKLEN * (AES_128_NR + 1)];
+extern uint8_t  rnd_keys[AES_BLOCKLEN * (AES_256_NR + 1)];
 
 void kernel_cipher_128(kernel_arg_t* __UNIFORM__ arg) {
       uint64_t idx = blockIdx.x * blockDim.x + threadIdx.x;
