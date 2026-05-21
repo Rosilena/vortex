@@ -92,12 +92,16 @@ int main() {
                   return vx_spawn_threads(1, &arg->grid_dim, &arg->block_dim, (vx_kernel_func_cb) kernel_cipher_128, arg);
             } else if (arg->aes_size == AES192) {
                   return vx_spawn_threads(1, &arg->grid_dim, &arg->block_dim, (vx_kernel_func_cb) kernel_cipher_192, arg);
+            } else if (arg->aes_size == AES256) {
+                  return vx_spawn_threads(1, &arg->grid_dim, &arg->block_dim, (vx_kernel_func_cb) kernel_cipher_256, arg);
             }
       } else {
             if (arg->aes_size == AES128) {
                   return vx_spawn_threads(1, &arg->grid_dim, &arg->block_dim, (vx_kernel_func_cb) kernel_decipher_128, arg);
             } else if (arg->aes_size == AES192) {
                   return vx_spawn_threads(1, &arg->grid_dim, &arg->block_dim, (vx_kernel_func_cb) kernel_decipher_192, arg);
+            } else if (arg->aes_size == AES256) {
+                  return vx_spawn_threads(1, &arg->grid_dim, &arg->block_dim, (vx_kernel_func_cb) kernel_decipher_256, arg);
             }
       }
 
